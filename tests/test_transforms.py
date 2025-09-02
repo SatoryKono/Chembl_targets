@@ -64,9 +64,25 @@ def test_hyphen_variants_present():
 
 def test_letter_digit_space_variants():
     result = normalize_target_name("h 3 receptor")
+    assert "h" in result.query_tokens
+    assert "3" in result.query_tokens
     assert "h3" in result.query_tokens
     assert "h-3" in result.query_tokens
     assert result.clean_text.split() == ["h3", "h-3"]
+
+
+def test_parenthetical_complex_indices():
+    res1 = normalize_target_name("p2x receptor (p2x7)")
+    assert "p2x7" in res1.query_tokens
+    assert "p2x7" in res1.clean_text.split()
+    assert res1.hints["parenthetical"] == ["p2x7"]
+
+    res2 = normalize_target_name("serotonin receptor (5-ht1a)")
+    assert "5-ht1a" in res2.query_tokens
+    assert "5ht1a" in res2.query_tokens
+    assert "5-ht1a" in res2.clean_text.split()
+    assert "5ht1a" in res2.clean_text.split()
+    assert res2.hints["parenthetical"] == ["5-ht1a"]
 
 
 @pytest.mark.parametrize(

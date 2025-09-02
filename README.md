@@ -31,7 +31,11 @@ The output CSV includes columns:
 Hyphenated tokens (e.g. `beta2-adrenergic`) and letter–digit pairs with spaces
 (`h 3`) emit both dashed and undashed variants in `clean_text` and
 `query_tokens` (`beta2-adrenergic`/`beta2adrenergic`, `h-3`/`h3`) to aid
-downstream matching.
+downstream matching. Original split tokens (e.g. `h` and `3`) are also
+preserved in `query_tokens`.
+
+Short indices enclosed in brackets such as `h3`, `p2x7`, or `5-ht1a` are
+kept; the bracketed content is stored under `hints.parenthetical`.
 
 Gene-like candidates are inferred via regex rules:
 
