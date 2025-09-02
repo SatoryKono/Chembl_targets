@@ -33,6 +33,7 @@ def normalize_dataframe(df: pd.DataFrame, column: str) -> pd.DataFrame:
     ]
     df = df.copy()
     df["clean_text"] = [r.clean_text for r in results]
+    df["clean_text_alt"] = [r.clean_text_alt for r in results]
     df["query_tokens"] = [" ".join(r.query_tokens) for r in results]
     df["gene_like_candidates"] = [" ".join(r.gene_like_candidates) for r in results]
     df["hints"] = [json.dumps(r.hints, ensure_ascii=False) for r in results]

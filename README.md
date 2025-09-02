@@ -22,6 +22,12 @@ pip install black ruff mypy
 python main.py --input target_validation_new.csv --output normalized.csv
 ```
 
+The output CSV includes columns:
+
+- `clean_text` – normalized string without stop words
+- `clean_text_alt` – version retaining stop words
+- `query_tokens`, `gene_like_candidates`, `hints`, `rules_applied`, `hint_taxon`
+
 ## Development
 
 Run formatting and tests:

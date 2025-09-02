@@ -65,6 +65,7 @@ SUPERSCRIPTS: Dict[str, str] = {
 STOP_WORDS: Sequence[str] = (
     "protein",
     "receptor",
+    "channel",
     "isoform",
     "fragment",
     "subunit",
@@ -249,6 +250,7 @@ def final_cleanup(tokens: Sequence[str]) -> List[str]:
 class NormalizationResult:
     raw: str
     clean_text: str
+    clean_text_alt: str
     query_tokens: List[str]
     gene_like_candidates: List[str]
     hint_taxon: int
@@ -279,17 +281,20 @@ def normalize_target_name(name: str) -> NormalizationResult:
         stage = f"{stage} {' '.join(paren_tokens)}".strip()
     stage = pretoken_cleanup(stage)
     stage, rule_candidates, rules_applied = apply_receptor_rules(stage)
-    tokens = tokenize(stage)
-    tokens, dropped = remove_weak_words(tokens)
-    candidates = generate_candidates(tokens)
+    tokens_raw = tokenize(stage)
+    tokens_no_stop, dropped = remove_weak_words(tokens_raw)
+    tokens_no_stop = final_cleanup(tokens_no_stop)
+    tokens_alt = final_cleanup(tokens_raw)
+    candidates = generate_candidates(tokens_no_stop)
     candidates.extend(rule_candidates)
-    tokens = final_cleanup(tokens)
-    clean_text = " ".join(tokens)
+    clean_text = " ".join(tokens_no_stop)
+    clean_text_alt = " ".join(tokens_alt)
     hints = {"parenthetical": parenthetical, "dropped": dropped}
     return NormalizationResult(
         raw=raw,
         clean_text=clean_text,
-        query_tokens=tokens,
+        clean_text_alt=clean_text_alt,
+        query_tokens=tokens_no_stop,
         gene_like_candidates=final_cleanup(candidates),
         hint_taxon=9606,
         hints=hints,
