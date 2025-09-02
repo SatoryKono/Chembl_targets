@@ -109,13 +109,10 @@ TYPO_QUOTES_RE = re.compile(r"[“”«»„]|’")
 LONG_DASH_RE = re.compile(r"[–—]")
 PAREN_RE = re.compile(r"\(([^(]*)\)|\[([^\]]*)\]|\{([^}]*)\)")
 TOKEN_SPLIT_RE = re.compile(r"[\s\-_/,:;\.]+")
-LETTER_NUM_SPACE_RE = re.compile(r"(?<=\b)([a-z])\s+([0-9])(?=\b)", re.I)
-NUM_LETTER_SPACE_RE = re.compile(r"(?<=\b)([0-9])\s+([a-z])(?=\b)", re.I)
 HYPHEN_SPACE_RE = re.compile(r"\s*-\s*")
-WORD_NUM_SPACE_RE = re.compile(r"(?<=\b)([a-z]+)\s+([0-9]+)(?=\b)", re.I)
 HYPHEN_TOKEN_RE = re.compile(r"\b[a-z0-9]+(?:-[a-z0-9]+)+\b")
 SHORT_TOKEN_RE = re.compile(r"^[a-z0-9]{1,3}$")
-INDEX_TOKEN_RE = re.compile(r"^(?:[a-z]\d|5-?ht\d+[a-z]?)$")
+INDEX_TOKEN_RE = re.compile(r"^(?:[a-z]\d(?:[a-z]\d+)?|5-?ht\d+[a-z]?)$")
 
 
 def sanitize_text(text: str) -> str:
@@ -187,7 +184,7 @@ def extract_parenthetical(text: str) -> Tuple[str, List[str], List[str]]:
             hints.append(token)
             compact = re.sub(r"[\s_\-]", "", token)
             if SHORT_TOKEN_RE.fullmatch(compact) or INDEX_TOKEN_RE.fullmatch(compact):
-                keep_tokens.append(compact)
+                keep_tokens.append(token.strip())
         return ""
 
     text = PAREN_RE.sub(repl, text)
@@ -195,20 +192,31 @@ def extract_parenthetical(text: str) -> Tuple[str, List[str], List[str]]:
 
 
 def pretoken_cleanup(text: str) -> str:
-    """Glue separated tokens before splitting."""
-    text = LETTER_NUM_SPACE_RE.sub(r"\1\2", text)
-    text = NUM_LETTER_SPACE_RE.sub(r"\1\2", text)
+    """Normalize spaces around hyphens before splitting."""
     text = HYPHEN_SPACE_RE.sub("-", text)
     return text
 
 
-def detect_space_variants(text: str) -> List[str]:
-    """Return variants for letter-number pairs separated by space."""
+def generate_letter_digit_variants(tokens: Sequence[str]) -> List[str]:
+    """Create concatenated and hyphenated variants for letter-digit pairs.
+
+    Parameters
+    ----------
+    tokens:
+        Tokens obtained after initial splitting.
+
+    Returns
+    -------
+    List[str]
+        Additional tokens representing joined forms like ``h3`` and ``h-3``.
+    """
 
     variants: List[str] = []
-    for letters, digits in WORD_NUM_SPACE_RE.findall(text):
-        variants.append(f"{letters}-{digits}")
-        variants.append(f"{letters}{digits}")
+    for i in range(len(tokens) - 1):
+        left, right = tokens[i], tokens[i + 1]
+        if left.isalpha() and right.isdigit():
+            variants.append(f"{left}{right}")
+            variants.append(f"{left}-{right}")
     return variants
 
 
@@ -323,20 +331,22 @@ def normalize_target_name(name: str) -> NormalizationResult:
     stage, parenthetical, paren_tokens = extract_parenthetical(stage)
     if paren_tokens:
         stage = f"{stage} {' '.join(paren_tokens)}".strip()
-    space_variants = detect_space_variants(stage)
     stage = pretoken_cleanup(stage)
     stage, rule_candidates, rules_applied = apply_receptor_rules(stage)
     hyphen_variants = detect_hyphen_variants(stage)
     tokens_raw = tokenize(stage)
-    tokens_raw.extend(space_variants + hyphen_variants)
+    letter_digit_variants = generate_letter_digit_variants(tokens_raw)
+    tokens_raw.extend(letter_digit_variants + hyphen_variants)
     tokens_no_stop, dropped = remove_weak_words(tokens_raw)
-    tokens_no_stop = final_cleanup(tokens_no_stop)
     tokens_alt = final_cleanup(tokens_raw)
+    tokens_no_stop = final_cleanup(tokens_no_stop)
+    clean_tokens = [t for t in tokens_no_stop if not re.fullmatch(r"[a-z]$|\d+$", t)]
+    clean_tokens_alt = [t for t in tokens_alt if not re.fullmatch(r"[a-z]$|\d+$", t)]
     text_for_candidates = " ".join(tokens_no_stop)
     regex_candidates = generate_regex_candidates(text_for_candidates)
     candidates = rule_candidates + regex_candidates
-    clean_text = text_for_candidates
-    clean_text_alt = " ".join(tokens_alt)
+    clean_text = "|".join(clean_tokens)
+    clean_text_alt = "|".join(clean_tokens_alt)
     hints = {"parenthetical": parenthetical, "dropped": dropped}
     return NormalizationResult(
         raw=raw,

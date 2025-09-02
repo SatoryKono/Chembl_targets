@@ -1,11 +1,14 @@
 from pathlib import Path
 import sys
+import json
 
+import pandas as pd
 import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from mylib.io_utils import read_target_names
+from main import normalize_dataframe
+from mylib.io_utils import read_target_names, write_with_new_columns
 from mylib.transforms import (
     apply_receptor_rules,
     normalize_target_name,
@@ -33,8 +36,8 @@ def test_full_normalization():
     sample = Path("tests/data/sample.csv")
     df = read_target_names(sample)
     result = normalize_target_name(df.loc[0, "target_name"])
-    assert result.clean_text.startswith("beta2 adrenergic")
-    assert result.clean_text_alt.startswith("beta2 adrenergic")
+    assert result.clean_text.startswith("beta2|adrenergic")
+    assert result.clean_text_alt.startswith("beta2|adrenergic")
     assert "adrb2" in result.gene_like_candidates
 
 
@@ -49,7 +52,7 @@ def test_parenthetical_short_token_retained():
 def test_clean_text_alt_retains_stopwords():
     result = normalize_target_name("histamine receptor channel")
     assert result.clean_text == "histamine"
-    assert result.clean_text_alt == "histamine receptor channel"
+    assert result.clean_text_alt == "histamine|receptor|channel"
     assert "receptor" in result.hints["dropped"]
     assert "channel" in result.hints["dropped"]
 
@@ -58,15 +61,46 @@ def test_hyphen_variants_present():
     result = normalize_target_name("β2-adrenergic receptor")
     assert "beta2-adrenergic" in result.query_tokens
     assert "beta2adrenergic" in result.query_tokens
-    assert "beta2-adrenergic" in result.clean_text.split()
-    assert "beta2adrenergic" in result.clean_text.split()
+    assert "beta2-adrenergic" in result.clean_text.split("|")
+    assert "beta2adrenergic" in result.clean_text.split("|")
 
 
 def test_letter_digit_space_variants():
     result = normalize_target_name("h 3 receptor")
+    assert "h" in result.query_tokens
+    assert "3" in result.query_tokens
     assert "h3" in result.query_tokens
     assert "h-3" in result.query_tokens
-    assert result.clean_text.split() == ["h3", "h-3"]
+    assert result.clean_text.split("|") == ["h3", "h-3"]
+
+
+def test_parenthetical_complex_indices():
+    res1 = normalize_target_name("p2x receptor (p2x7)")
+    assert "p2x7" in res1.query_tokens
+    assert "p2x7" in res1.clean_text.split("|")
+    assert res1.hints["parenthetical"] == ["p2x7"]
+
+    res2 = normalize_target_name("serotonin receptor (5-ht1a)")
+    assert "5-ht1a" in res2.query_tokens
+    assert "5ht1a" in res2.query_tokens
+    assert "5-ht1a" in res2.clean_text.split("|")
+    assert "5ht1a" in res2.clean_text.split("|")
+    assert res2.hints["parenthetical"] == ["5-ht1a"]
+
+
+def test_dataframe_hints_and_rules(tmp_path: Path) -> None:
+    sample = Path("tests/data/sample.csv")
+    df = read_target_names(sample)
+    df_norm = normalize_dataframe(df, "target_name")
+    assert isinstance(df_norm.loc[0, "hints"], dict)
+    assert isinstance(df_norm.loc[0, "rules_applied"], list)
+    out = tmp_path / "out.csv"
+    write_with_new_columns(df_norm, out)
+    saved = pd.read_csv(out)
+    loaded_hints = json.loads(saved.loc[0, "hints"])
+    loaded_rules = json.loads(saved.loc[0, "rules_applied"])
+    assert isinstance(loaded_hints, dict)
+    assert isinstance(loaded_rules, list)
 
 
 @pytest.mark.parametrize(

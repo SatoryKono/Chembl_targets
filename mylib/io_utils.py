@@ -93,6 +93,10 @@ def write_with_new_columns(
     encoding:
         Target encoding, default UTF-8.
     """
+    df = df.copy()
+    for col in ("hints", "rules_applied"):
+        if col in df.columns:
+            df[col] = df[col].apply(lambda x: json.dumps(x, ensure_ascii=False))
     df.to_csv(path, index=False, encoding=encoding)
 
 
