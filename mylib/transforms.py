@@ -153,6 +153,7 @@ def replace_roman_numerals(text: str) -> str:
     return pattern.sub(repl, text)
 
 
+
 def extract_parenthetical(text: str) -> Tuple[str, List[str], List[str]]:
     """Extract bracketed text into hints and retain certain short tokens.
 
@@ -184,6 +185,7 @@ def extract_parenthetical(text: str) -> Tuple[str, List[str], List[str]]:
 
     text = PAREN_RE.sub(repl, text)
     return text, hints, keep_tokens
+
 
 
 def pretoken_cleanup(text: str) -> str:
