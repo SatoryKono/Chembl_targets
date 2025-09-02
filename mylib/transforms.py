@@ -65,6 +65,7 @@ SUPERSCRIPTS: Dict[str, str] = {
 STOP_WORDS: Sequence[str] = (
     "protein",
     "receptor",
+    "channel",
     "isoform",
     "fragment",
     "subunit",
@@ -103,6 +104,10 @@ TOKEN_SPLIT_RE = re.compile(r"[\s\-_/,:;\.]+")
 LETTER_NUM_SPACE_RE = re.compile(r"(?<=\b)([a-z])\s+([0-9])(?=\b)", re.I)
 NUM_LETTER_SPACE_RE = re.compile(r"(?<=\b)([0-9])\s+([a-z])(?=\b)", re.I)
 HYPHEN_SPACE_RE = re.compile(r"\s*-\s*")
+WORD_NUM_SPACE_RE = re.compile(r"(?<=\b)([a-z]+)\s+([0-9]+)(?=\b)", re.I)
+HYPHEN_TOKEN_RE = re.compile(r"\b[a-z0-9]+(?:-[a-z0-9]+)+\b")
+SHORT_TOKEN_RE = re.compile(r"^[a-z0-9]{1,3}$")
+INDEX_TOKEN_RE = re.compile(r"^(?:[a-z]\d|5-?ht\d+[a-z]?)$")
 
 
 def sanitize_text(text: str) -> str:
@@ -148,19 +153,39 @@ def replace_roman_numerals(text: str) -> str:
     return pattern.sub(repl, text)
 
 
-def extract_parenthetical(text: str) -> Tuple[str, List[str]]:
-    """Extract text within brackets into a hint field."""
+
+def extract_parenthetical(text: str) -> Tuple[str, List[str], List[str]]:
+    """Extract bracketed text into hints and retain certain short tokens.
+
+    Parameters
+    ----------
+    text:
+        Input string with possible parenthetical segments.
+
+    Returns
+    -------
+    Tuple[str, List[str], List[str]]
+        The text with brackets removed, list of extracted strings for hints,
+        and tokens that should remain in the main text.
+    """
+
     hints: List[str] = []
+    keep_tokens: List[str] = []
 
     def repl(match: re.Match[str]) -> str:
-        # match groups correspond to (), [], {}
         for group in match.groups():
-            if group:
-                hints.append(group.strip())
+            if not group:
+                continue
+            token = group.strip()
+            hints.append(token)
+            compact = re.sub(r"[\s_\-]", "", token)
+            if SHORT_TOKEN_RE.fullmatch(compact) or INDEX_TOKEN_RE.fullmatch(compact):
+                keep_tokens.append(compact)
         return ""
 
     text = PAREN_RE.sub(repl, text)
-    return text, hints
+    return text, hints, keep_tokens
+
 
 
 def pretoken_cleanup(text: str) -> str:
@@ -169,6 +194,26 @@ def pretoken_cleanup(text: str) -> str:
     text = NUM_LETTER_SPACE_RE.sub(r"\1\2", text)
     text = HYPHEN_SPACE_RE.sub("-", text)
     return text
+
+
+def detect_space_variants(text: str) -> List[str]:
+    """Return variants for letter-number pairs separated by space."""
+
+    variants: List[str] = []
+    for letters, digits in WORD_NUM_SPACE_RE.findall(text):
+        variants.append(f"{letters}-{digits}")
+        variants.append(f"{letters}{digits}")
+    return variants
+
+
+def detect_hyphen_variants(text: str) -> List[str]:
+    """Return tokens with hyphen and their concatenated counterparts."""
+
+    variants: List[str] = []
+    for token in HYPHEN_TOKEN_RE.findall(text):
+        variants.append(token)
+        variants.append(token.replace("-", ""))
+    return variants
 
 
 def tokenize(text: str) -> List[str]:
@@ -229,6 +274,7 @@ def final_cleanup(tokens: Sequence[str]) -> List[str]:
 class NormalizationResult:
     raw: str
     clean_text: str
+    clean_text_alt: str
     query_tokens: List[str]
     gene_like_candidates: List[str]
     hint_taxon: int
@@ -254,20 +300,28 @@ def normalize_target_name(name: str) -> NormalizationResult:
     stage = normalize_unicode(stage)
     stage = replace_specials(stage)
     stage = replace_roman_numerals(stage)
-    stage, parenthetical = extract_parenthetical(stage)
+    stage, parenthetical, paren_tokens = extract_parenthetical(stage)
+    if paren_tokens:
+        stage = f"{stage} {' '.join(paren_tokens)}".strip()
+    space_variants = detect_space_variants(stage)
     stage = pretoken_cleanup(stage)
     stage, rule_candidates, rules_applied = apply_receptor_rules(stage)
-    tokens = tokenize(stage)
-    tokens, dropped = remove_weak_words(tokens)
-    candidates = generate_candidates(tokens)
+    hyphen_variants = detect_hyphen_variants(stage)
+    tokens_raw = tokenize(stage)
+    tokens_raw.extend(space_variants + hyphen_variants)
+    tokens_no_stop, dropped = remove_weak_words(tokens_raw)
+    tokens_no_stop = final_cleanup(tokens_no_stop)
+    tokens_alt = final_cleanup(tokens_raw)
+    candidates = generate_candidates(tokens_no_stop)
     candidates.extend(rule_candidates)
-    tokens = final_cleanup(tokens)
-    clean_text = " ".join(tokens)
+    clean_text = " ".join(tokens_no_stop)
+    clean_text_alt = " ".join(tokens_alt)
     hints = {"parenthetical": parenthetical, "dropped": dropped}
     return NormalizationResult(
         raw=raw,
         clean_text=clean_text,
-        query_tokens=tokens,
+        clean_text_alt=clean_text_alt,
+        query_tokens=tokens_no_stop,
         gene_like_candidates=final_cleanup(candidates),
         hint_taxon=9606,
         hints=hints,
