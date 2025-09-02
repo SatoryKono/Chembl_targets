@@ -1,11 +1,14 @@
 from pathlib import Path
 import sys
+import json
 
+import pandas as pd
 import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from mylib.io_utils import read_target_names
+from main import normalize_dataframe
+from mylib.io_utils import read_target_names, write_with_new_columns
 from mylib.transforms import (
     apply_receptor_rules,
     normalize_target_name,
@@ -83,6 +86,21 @@ def test_parenthetical_complex_indices():
     assert "5-ht1a" in res2.clean_text.split()
     assert "5ht1a" in res2.clean_text.split()
     assert res2.hints["parenthetical"] == ["5-ht1a"]
+
+
+def test_dataframe_hints_and_rules(tmp_path: Path) -> None:
+    sample = Path("tests/data/sample.csv")
+    df = read_target_names(sample)
+    df_norm = normalize_dataframe(df, "target_name")
+    assert isinstance(df_norm.loc[0, "hints"], dict)
+    assert isinstance(df_norm.loc[0, "rules_applied"], list)
+    out = tmp_path / "out.csv"
+    write_with_new_columns(df_norm, out)
+    saved = pd.read_csv(out)
+    loaded_hints = json.loads(saved.loc[0, "hints"])
+    loaded_rules = json.loads(saved.loc[0, "rules_applied"])
+    assert isinstance(loaded_hints, dict)
+    assert isinstance(loaded_rules, list)
 
 
 @pytest.mark.parametrize(

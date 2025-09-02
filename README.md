@@ -28,6 +28,10 @@ The output CSV includes columns:
 - `clean_text_alt` – version retaining stop words
 - `query_tokens`, `gene_like_candidates`, `hints`, `rules_applied`, `hint_taxon`
 
+`hints` and `rules_applied` are stored as JSON structures in the output
+CSV, preserving the original dictionaries and lists used during
+processing.
+
 Hyphenated tokens (e.g. `beta2-adrenergic`) and letter–digit pairs with spaces
 (`h 3`) emit both dashed and undashed variants in `clean_text` and
 `query_tokens` (`beta2-adrenergic`/`beta2adrenergic`, `h-3`/`h3`) to aid

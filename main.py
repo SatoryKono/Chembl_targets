@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 from pathlib import Path
 from typing import List
@@ -36,8 +35,8 @@ def normalize_dataframe(df: pd.DataFrame, column: str) -> pd.DataFrame:
     df["clean_text_alt"] = [r.clean_text_alt for r in results]
     df["query_tokens"] = [" ".join(r.query_tokens) for r in results]
     df["gene_like_candidates"] = [" ".join(r.gene_like_candidates) for r in results]
-    df["hints"] = [json.dumps(r.hints, ensure_ascii=False) for r in results]
-    df["rules_applied"] = [" ".join(r.rules_applied) for r in results]
+    df["hints"] = [r.hints for r in results]
+    df["rules_applied"] = [r.rules_applied for r in results]
     df["hint_taxon"] = [r.hint_taxon for r in results]
     return df
 
