@@ -1,6 +1,8 @@
 from pathlib import Path
 import sys
 
+import pytest
+
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from mylib.io_utils import read_target_names
@@ -65,3 +67,19 @@ def test_letter_digit_space_variants():
     assert "h3" in result.query_tokens
     assert "h-3" in result.query_tokens
     assert result.clean_text.split() == ["h3", "h-3"]
+
+
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        ("histamine h4", "hrh4"),
+        ("dopamine d3", "drd3"),
+        ("adrenergic beta1", "adrb1"),
+        ("p2x3", "p2rx3"),
+        ("5-ht1b", "htr1b"),
+        ("gaba a alpha2", "gabra2"),
+    ],
+)
+def test_regex_gene_like_candidates(name: str, expected: str) -> None:
+    result = normalize_target_name(name)
+    assert expected in result.gene_like_candidates

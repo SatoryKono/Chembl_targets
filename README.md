@@ -33,6 +33,15 @@ Hyphenated tokens (e.g. `beta2-adrenergic`) and letter–digit pairs with spaces
 `query_tokens` (`beta2-adrenergic`/`beta2adrenergic`, `h-3`/`h3`) to aid
 downstream matching.
 
+Gene-like candidates are inferred via regex rules:
+
+- `histamine h3` → `hrh3`
+- `dopamine d2` → `drd2`
+- `adrenergic beta1` → `adrb1`
+- `p2x3` → `p2rx3`
+- `5-ht1a` → `htr1a`
+- `gaba a alpha2` → `gabra2`
+
 ## Development
 
 Run formatting and tests:

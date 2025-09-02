@@ -92,6 +92,14 @@ CANDIDATE_PREFIXES: Dict[str, str] = {
     "beta2": "adrb2",
     "5-ht1a": "htr1a",
 }
+CANDIDATE_REGEX_RULES: Sequence[Tuple[re.Pattern[str], str]] = (
+    (re.compile(r"histamine\s+h(\d+)"), r"hrh\1"),
+    (re.compile(r"dopamine\s+d(\d+)"), r"drd\1"),
+    (re.compile(r"adrenergic\s+beta(\d+)"), r"adrb\1"),
+    (re.compile(r"p2x(\d+)"), r"p2rx\1"),
+    (re.compile(r"5[- ]?ht(\d+[a-z]?)"), r"htr\1"),
+    (re.compile(r"gaba\s+a\s+alpha(\d+)"), r"gabra\1"),
+)
 
 ROMAN_NUMERALS: Dict[str, str] = {"ii": "2", "iii": "3", "iv": "4"}
 
@@ -153,7 +161,6 @@ def replace_roman_numerals(text: str) -> str:
     return pattern.sub(repl, text)
 
 
-
 def extract_parenthetical(text: str) -> Tuple[str, List[str], List[str]]:
     """Extract bracketed text into hints and retain certain short tokens.
 
@@ -185,7 +192,6 @@ def extract_parenthetical(text: str) -> Tuple[str, List[str], List[str]]:
 
     text = PAREN_RE.sub(repl, text)
     return text, hints, keep_tokens
-
 
 
 def pretoken_cleanup(text: str) -> str:
@@ -250,12 +256,26 @@ def apply_receptor_rules(text: str) -> Tuple[str, List[str], List[str]]:
     return text, candidates, applied
 
 
-def generate_candidates(tokens: Sequence[str]) -> List[str]:
-    """Generate gene-like candidates from tokens."""
+def generate_regex_candidates(text: str) -> List[str]:
+    """Generate gene-like candidates from regex rules.
+
+    Parameters
+    ----------
+    text:
+        Concatenated normalized tokens.
+
+    Returns
+    -------
+    List[str]
+        Candidate gene symbols inferred from the text.
+    """
+
     candidates: List[str] = []
-    for tok in tokens:
-        if tok in CANDIDATE_PREFIXES:
-            candidates.append(CANDIDATE_PREFIXES[tok])
+    for pattern, repl in CANDIDATE_REGEX_RULES:
+        for match in pattern.finditer(text):
+            candidate = match.expand(repl)
+            if candidate not in candidates:
+                candidates.append(candidate)
     return candidates
 
 
@@ -312,9 +332,10 @@ def normalize_target_name(name: str) -> NormalizationResult:
     tokens_no_stop, dropped = remove_weak_words(tokens_raw)
     tokens_no_stop = final_cleanup(tokens_no_stop)
     tokens_alt = final_cleanup(tokens_raw)
-    candidates = generate_candidates(tokens_no_stop)
-    candidates.extend(rule_candidates)
-    clean_text = " ".join(tokens_no_stop)
+    text_for_candidates = " ".join(tokens_no_stop)
+    regex_candidates = generate_regex_candidates(text_for_candidates)
+    candidates = rule_candidates + regex_candidates
+    clean_text = text_for_candidates
     clean_text_alt = " ".join(tokens_alt)
     hints = {"parenthetical": parenthetical, "dropped": dropped}
     return NormalizationResult(
