@@ -104,6 +104,8 @@ TOKEN_SPLIT_RE = re.compile(r"[\s\-_/,:;\.]+")
 LETTER_NUM_SPACE_RE = re.compile(r"(?<=\b)([a-z])\s+([0-9])(?=\b)", re.I)
 NUM_LETTER_SPACE_RE = re.compile(r"(?<=\b)([0-9])\s+([a-z])(?=\b)", re.I)
 HYPHEN_SPACE_RE = re.compile(r"\s*-\s*")
+WORD_NUM_SPACE_RE = re.compile(r"(?<=\b)([a-z]+)\s+([0-9]+)(?=\b)", re.I)
+HYPHEN_TOKEN_RE = re.compile(r"\b[a-z0-9]+(?:-[a-z0-9]+)+\b")
 SHORT_TOKEN_RE = re.compile(r"^[a-z0-9]{1,3}$")
 INDEX_TOKEN_RE = re.compile(r"^(?:[a-z]\d|5-?ht\d+[a-z]?)$")
 
@@ -190,6 +192,26 @@ def pretoken_cleanup(text: str) -> str:
     text = NUM_LETTER_SPACE_RE.sub(r"\1\2", text)
     text = HYPHEN_SPACE_RE.sub("-", text)
     return text
+
+
+def detect_space_variants(text: str) -> List[str]:
+    """Return variants for letter-number pairs separated by space."""
+
+    variants: List[str] = []
+    for letters, digits in WORD_NUM_SPACE_RE.findall(text):
+        variants.append(f"{letters}-{digits}")
+        variants.append(f"{letters}{digits}")
+    return variants
+
+
+def detect_hyphen_variants(text: str) -> List[str]:
+    """Return tokens with hyphen and their concatenated counterparts."""
+
+    variants: List[str] = []
+    for token in HYPHEN_TOKEN_RE.findall(text):
+        variants.append(token)
+        variants.append(token.replace("-", ""))
+    return variants
 
 
 def tokenize(text: str) -> List[str]:
@@ -279,9 +301,12 @@ def normalize_target_name(name: str) -> NormalizationResult:
     stage, parenthetical, paren_tokens = extract_parenthetical(stage)
     if paren_tokens:
         stage = f"{stage} {' '.join(paren_tokens)}".strip()
+    space_variants = detect_space_variants(stage)
     stage = pretoken_cleanup(stage)
     stage, rule_candidates, rules_applied = apply_receptor_rules(stage)
+    hyphen_variants = detect_hyphen_variants(stage)
     tokens_raw = tokenize(stage)
+    tokens_raw.extend(space_variants + hyphen_variants)
     tokens_no_stop, dropped = remove_weak_words(tokens_raw)
     tokens_no_stop = final_cleanup(tokens_no_stop)
     tokens_alt = final_cleanup(tokens_raw)
