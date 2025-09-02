@@ -86,6 +86,12 @@ RECEPTOR_RULES: Sequence[Tuple[re.Pattern[str], str, str]] = (
     (re.compile(r"histamine\s+h3\s+receptor"), "histamine h3", "hrh3"),
 )
 
+CANDIDATE_PREFIXES: Dict[str, str] = {
+    "h3": "hrh3",
+    "d2": "drd2",
+    "beta2": "adrb2",
+    "5-ht1a": "htr1a",
+}
 CANDIDATE_REGEX_RULES: Sequence[Tuple[re.Pattern[str], str]] = (
     (re.compile(r"histamine\s+h(\d+)"), r"hrh\1"),
     (re.compile(r"dopamine\s+d(\d+)"), r"drd\1"),
