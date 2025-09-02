@@ -29,8 +29,9 @@ The output CSV includes columns:
 - `query_tokens`, `gene_like_candidates`, `hints`, `rules_applied`, `hint_taxon`
 
 Hyphenated tokens (e.g. `beta2-adrenergic`) and letter–digit pairs with spaces
-(`h 3`) produce additional variants in `clean_text` such as `beta2adrenergic`
-and `h-3` to aid downstream matching.
+(`h 3`) emit both dashed and undashed variants in `clean_text` and
+`query_tokens` (`beta2-adrenergic`/`beta2adrenergic`, `h-3`/`h3`) to aid
+downstream matching.
 
 ## Development
 

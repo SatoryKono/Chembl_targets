@@ -56,9 +56,12 @@ def test_hyphen_variants_present():
     result = normalize_target_name("β2-adrenergic receptor")
     assert "beta2-adrenergic" in result.query_tokens
     assert "beta2adrenergic" in result.query_tokens
+    assert "beta2-adrenergic" in result.clean_text.split()
+    assert "beta2adrenergic" in result.clean_text.split()
 
 
 def test_letter_digit_space_variants():
     result = normalize_target_name("h 3 receptor")
     assert "h3" in result.query_tokens
     assert "h-3" in result.query_tokens
+    assert result.clean_text.split() == ["h3", "h-3"]
