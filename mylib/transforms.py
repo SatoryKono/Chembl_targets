@@ -339,8 +339,8 @@ def normalize_target_name(name: str) -> NormalizationResult:
     text_for_candidates = " ".join(tokens_no_stop)
     regex_candidates = generate_regex_candidates(text_for_candidates)
     candidates = rule_candidates + regex_candidates
-    clean_text = " ".join(clean_tokens)
-    clean_text_alt = " ".join(clean_tokens_alt)
+    clean_text = "|".join(clean_tokens)
+    clean_text_alt = "|".join(clean_tokens_alt)
     hints = {"parenthetical": parenthetical, "dropped": dropped}
     return NormalizationResult(
         raw=raw,
