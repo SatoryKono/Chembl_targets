@@ -24,14 +24,16 @@ python main.py --input target_validation_new.csv --output normalized.csv
 
 The output CSV includes columns:
 
-- `clean_text` – normalized string without stop words
+- `clean_text` – normalized name without stop words
 - `clean_text_alt` – version retaining stop words
 - `query_tokens`, `gene_like_candidates`, `hints`, `rules_applied`, `hint_taxon`
 
-`clean_text`, `clean_text_alt`, and `query_tokens` use the pipe character (`|`)
-as a separator when multiple tokens or variants are present. `hints` and
-`rules_applied` are stored as JSON structures in the output CSV, preserving the
-original dictionaries and lists used during processing.
+`clean_text` and `clean_text_alt` collect all distinct textual variants
+(hyphenated/concatenated forms, retained bracket indices, etc.) joined with a
+pipe (`|`) only when more than one unique form exists. `query_tokens` uses the
+same separator for multiple tokens. `hints` and `rules_applied` are stored as
+JSON structures in the output CSV, preserving the original dictionaries and
+lists used during processing.
 
 
 Hyphenated tokens (e.g. `beta2-adrenergic`) and letter–digit pairs with spaces
@@ -42,6 +44,11 @@ preserved in `query_tokens`.
 
 Short indices enclosed in brackets such as `h3`, `p2x7`, or `5-ht1a` are
 kept; the bracketed content is stored under `hints.parenthetical`.
+
+Mutation-like substrings (`V600E`, `p.Gly12Asp`, `ΔF508`, etc.) are detected
+via regex rules, removed from the normalized tokens, and recorded under
+`hints.mutations`. If removing mutations leaves no core tokens, the original
+tokens are restored and `hints.mutations_only` is set to `true`.
 
 Gene-like candidates are inferred via regex rules:
 

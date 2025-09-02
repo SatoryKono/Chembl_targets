@@ -86,12 +86,6 @@ RECEPTOR_RULES: Sequence[Tuple[re.Pattern[str], str, str]] = (
     (re.compile(r"histamine\s+h3\s+receptor"), "histamine h3", "hrh3"),
 )
 
-CANDIDATE_PREFIXES: Dict[str, str] = {
-    "h3": "hrh3",
-    "d2": "drd2",
-    "beta2": "adrb2",
-    "5-ht1a": "htr1a",
-}
 CANDIDATE_REGEX_RULES: Sequence[Tuple[re.Pattern[str], str]] = (
     (re.compile(r"histamine\s+h(\d+)"), r"hrh\1"),
     (re.compile(r"dopamine\s+d(\d+)"), r"drd\1"),
@@ -113,6 +107,44 @@ HYPHEN_SPACE_RE = re.compile(r"\s*-\s*")
 HYPHEN_TOKEN_RE = re.compile(r"\b[a-z0-9]+(?:-[a-z0-9]+)+\b")
 SHORT_TOKEN_RE = re.compile(r"^[a-z0-9]{1,3}$")
 INDEX_TOKEN_RE = re.compile(r"^(?:[a-z]\d(?:[a-z]\d+)?|5-?ht\d+[a-z]?)$")
+LETTER_DIGIT_SPLIT_RE = re.compile(r"\b(?:[a-z]\s+\d+|\d+\s+[a-z])\b")
+
+# Patterns for mutation extraction ------------------------------------------------
+MUTATION_PATTERNS: Sequence[re.Pattern[str]] = (
+    re.compile(r"p\.[A-Z][0-9]+[A-Z]", re.IGNORECASE),
+    re.compile(r"p\.[A-Z][0-9]+(?:\*|Ter)", re.IGNORECASE),
+    re.compile(r"p\.[A-Z][0-9]+(?:_[A-Z][0-9]+)?del", re.IGNORECASE),
+    re.compile(r"p\.[A-Z][0-9]+_[A-Z][0-9]+ins[A-Z]+", re.IGNORECASE),
+    re.compile(r"p\.[A-Z][0-9]+(?:_[A-Z][0-9]+)?dup", re.IGNORECASE),
+    re.compile(r"p\.[A-Z][0-9]+fs(?:\*[0-9]+)?", re.IGNORECASE),
+    re.compile(r"p\.Met1\?", re.IGNORECASE),
+    re.compile(r"p\.\*[0-9]+[A-Z]", re.IGNORECASE),
+    re.compile(r"p\.[A-Z][0-9]+(?:_[A-Z][0-9]+)?delins[A-Z]+", re.IGNORECASE),
+    re.compile(r"p\.[A-Z][a-z]{2}[0-9]+(?:[A-Z][a-z]{2}|\*|Ter)", re.IGNORECASE),
+    re.compile(r"\b[A-Z][0-9]+[A-Z]\b", re.IGNORECASE),
+    re.compile(
+        r"(?<!p\.)[A-Z][a-z]{2}[0-9]+(?:[A-Z][a-z]{2}|\*|Ter)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b[pcgnmr]\.[0-9]+[+-]?[0-9]*(?:_[+-]?[0-9]+)?(?:[ACGT]>[ACGT]|delins|del|ins|dup|inv|fs\*?[0-9]*)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\b(?:[A-Z][0-9]+[A-Z])(?:/[A-Z][0-9]+[A-Z])+\b", re.IGNORECASE),
+    re.compile(r"(?:Δ|delta)\s?[A-Z][0-9]+", re.IGNORECASE),
+    re.compile(r"\b(mutant|variant|mut\.)\b", re.IGNORECASE),
+)
+
+MUTATION_WHITELIST = {
+    "m2",
+    "h3",
+    "d2",
+    "p2x7",
+    "p2x",
+    "5-ht1a",
+    "alpha1",
+    "beta2",
+}
 
 
 def sanitize_text(text: str) -> str:
@@ -197,8 +229,8 @@ def pretoken_cleanup(text: str) -> str:
     return text
 
 
-def generate_letter_digit_variants(tokens: Sequence[str]) -> List[str]:
-    """Create concatenated and hyphenated variants for letter-digit pairs.
+def generate_letter_digit_variants(tokens: Sequence[str]) -> List[Tuple[str, str]]:
+    """Create joined variants for adjacent letter-digit tokens.
 
     Parameters
     ----------
@@ -207,27 +239,75 @@ def generate_letter_digit_variants(tokens: Sequence[str]) -> List[str]:
 
     Returns
     -------
-    List[str]
-        Additional tokens representing joined forms like ``h3`` and ``h-3``.
+    List[Tuple[str, str]]
+        Pairs of (variant, base_pattern) where ``base_pattern`` is the
+        space-separated form in the original text.
     """
 
-    variants: List[str] = []
+    variants: List[Tuple[str, str]] = []
     for i in range(len(tokens) - 1):
         left, right = tokens[i], tokens[i + 1]
         if left.isalpha() and right.isdigit():
-            variants.append(f"{left}{right}")
-            variants.append(f"{left}-{right}")
+            base = f"{left} {right}"
+            variants.append((f"{left}{right}", base))
+            variants.append((f"{left}-{right}", base))
     return variants
 
 
-def detect_hyphen_variants(text: str) -> List[str]:
-    """Return tokens with hyphen and their concatenated counterparts."""
+def detect_hyphen_variants(text: str) -> List[Tuple[str, str]]:
+    """Return hyphenated tokens and their space-separated base pattern.
+
+    Each result is a pair of (variant, base_pattern). Variants include the
+    original hyphenated token and its concatenated counterpart.
+    """
+
+    variants: List[Tuple[str, str]] = []
+    for token in HYPHEN_TOKEN_RE.findall(text):
+        base = token.replace("-", " ")
+        variants.append((token, base))
+        variants.append((token.replace("-", ""), base))
+    return variants
+
+
+def build_variant_strings(
+    base: str,
+    substitutions: Sequence[Tuple[str, str]],
+    extra: Sequence[str] | None = None,
+) -> List[str]:
+    """Generate variant strings from a base text and substitution patterns.
+
+    Parameters
+    ----------
+    base:
+        Base string joined from primary tokens.
+    substitutions:
+        Sequence of ``(variant, base_pattern)`` tuples used to replace parts of
+        the base string.
+    extra:
+        Additional standalone tokens to include as separate variants.
+
+    Returns
+    -------
+    List[str]
+        Unique variant strings with empty values removed.
+    """
 
     variants: List[str] = []
-    for token in HYPHEN_TOKEN_RE.findall(text):
-        variants.append(token)
-        variants.append(token.replace("-", ""))
-    return variants
+    base = base.strip()
+    if base and not LETTER_DIGIT_SPLIT_RE.search(base):
+        variants.append(base)
+    for var, pattern in substitutions:
+        if base and pattern in base:
+            variants.append(base.replace(pattern, var))
+        variants.append(var)
+    if extra:
+        variants.extend(extra)
+    seen: List[str] = []
+    for v in variants:
+        v = v.strip()
+        if v and v not in seen:
+            seen.append(v)
+    return seen
 
 
 def tokenize(text: str) -> List[str]:
@@ -245,6 +325,60 @@ def remove_weak_words(tokens: Sequence[str]) -> Tuple[List[str], List[str]]:
         else:
             result.append(tok)
     return result, dropped
+
+
+def find_mutations(text: str) -> List[str]:
+    """Extract mutation-like substrings from text.
+
+    Parameters
+    ----------
+    text:
+        Input string in its original form.
+
+    Returns
+    -------
+    List[str]
+        Unique mutation substrings in order of appearance.
+    """
+
+    found: List[str] = []
+    for pattern in MUTATION_PATTERNS:
+        for match in pattern.finditer(text):
+            token = match.group(0)
+            lower = token.lower()
+            if lower in MUTATION_WHITELIST:
+                continue
+            if any(lower in f.lower() for f in found):
+                continue
+            found = [f for f in found if f.lower() not in lower]
+            if token not in found:
+                found.append(token)
+    return found
+
+
+def mutation_token_set(mutations: Sequence[str]) -> set[str]:
+    """Normalize and tokenize mutation strings for removal.
+
+    Parameters
+    ----------
+    mutations:
+        Mutation substrings captured from the raw text.
+
+    Returns
+    -------
+    set[str]
+        Lowercase tokens representing mutations to exclude from results.
+    """
+
+    tokens: set[str] = set()
+    for mut in mutations:
+        norm = normalize_unicode(mut)
+        norm = replace_specials(norm)
+        norm = replace_roman_numerals(norm)
+        norm_tokens = tokenize(norm)
+        for tok in norm_tokens:
+            tokens.add(tok)
+    return tokens
 
 
 def apply_receptor_rules(text: str) -> Tuple[str, List[str], List[str]]:
@@ -306,7 +440,7 @@ class NormalizationResult:
     query_tokens: List[str]
     gene_like_candidates: List[str]
     hint_taxon: int
-    hints: Dict[str, List[str]]
+    hints: Dict[str, List[str] | bool]
     rules_applied: List[str]
 
 
@@ -325,6 +459,7 @@ def normalize_target_name(name: str) -> NormalizationResult:
     """
     raw = name
     stage = sanitize_text(name)
+    mutations = find_mutations(stage)
     stage = normalize_unicode(stage)
     stage = replace_specials(stage)
     stage = replace_roman_numerals(stage)
@@ -333,21 +468,82 @@ def normalize_target_name(name: str) -> NormalizationResult:
         stage = f"{stage} {' '.join(paren_tokens)}".strip()
     stage = pretoken_cleanup(stage)
     stage, rule_candidates, rules_applied = apply_receptor_rules(stage)
-    hyphen_variants = detect_hyphen_variants(stage)
-    tokens_raw = tokenize(stage)
-    letter_digit_variants = generate_letter_digit_variants(tokens_raw)
-    tokens_raw.extend(letter_digit_variants + hyphen_variants)
-    tokens_no_stop, dropped = remove_weak_words(tokens_raw)
-    tokens_alt = final_cleanup(tokens_raw)
+    hyphen_subs = detect_hyphen_variants(stage)
+    tokens_base = tokenize(stage)
+    letter_digit_subs = generate_letter_digit_variants(tokens_base)
+    substitutions = hyphen_subs + letter_digit_subs
+    tokens_base_no_stop, dropped = remove_weak_words(tokens_base)
+    tokens_base_alt = final_cleanup(tokens_base)
+    tokens_no_stop = tokens_base_no_stop + [v for v, _ in substitutions]
+    tokens_alt = tokens_base_alt + [v for v, _ in substitutions]
+
+    mutation_tokens = mutation_token_set(mutations)
+    tokens_no_stop_orig = list(tokens_no_stop)
+    tokens_alt_orig = list(tokens_alt)
+    tokens_base_no_stop_orig = list(tokens_base_no_stop)
+    tokens_base_alt_orig = list(tokens_base_alt)
+
+    tokens_no_stop = [
+        t for t in tokens_no_stop if t not in mutation_tokens or t in MUTATION_WHITELIST
+    ]
+    tokens_alt = [
+        t for t in tokens_alt if t not in mutation_tokens or t in MUTATION_WHITELIST
+    ]
+    tokens_base_no_stop = [
+        t
+        for t in tokens_base_no_stop
+        if t not in mutation_tokens or t in MUTATION_WHITELIST
+    ]
+    tokens_base_alt = [
+        t
+        for t in tokens_base_alt
+        if t not in mutation_tokens or t in MUTATION_WHITELIST
+    ]
+
+    clean_tokens_check = [
+        t for t in tokens_no_stop if not re.fullmatch(r"[a-z]$|\d+$", t)
+    ]
+    hints_mutations_only = False
+    if not clean_tokens_check:
+        tokens_no_stop = tokens_no_stop_orig
+        tokens_alt = tokens_alt_orig
+        tokens_base_no_stop = tokens_base_no_stop_orig
+        tokens_base_alt = tokens_base_alt_orig
+        hints_mutations_only = True
+
     tokens_no_stop = final_cleanup(tokens_no_stop)
-    clean_tokens = [t for t in tokens_no_stop if not re.fullmatch(r"[a-z]$|\d+$", t)]
-    clean_tokens_alt = [t for t in tokens_alt if not re.fullmatch(r"[a-z]$|\d+$", t)]
+    tokens_alt = final_cleanup(tokens_alt)
+    base_no_stop_str = " ".join(tokens_base_no_stop)
+    base_alt_str = " ".join(tokens_base_alt)
+
+    clean_variants = build_variant_strings(
+        base_no_stop_str, substitutions, paren_tokens
+    )
+    clean_variants_alt = build_variant_strings(
+        base_alt_str, substitutions, paren_tokens
+    )
+
+    clean_text = (
+        "|".join(clean_variants)
+        if len(clean_variants) > 1
+        else (clean_variants[0] if clean_variants else "")
+    )
+    clean_text_alt = (
+        "|".join(clean_variants_alt)
+        if len(clean_variants_alt) > 1
+        else (clean_variants_alt[0] if clean_variants_alt else "")
+    )
+
     text_for_candidates = " ".join(tokens_no_stop)
     regex_candidates = generate_regex_candidates(text_for_candidates)
     candidates = rule_candidates + regex_candidates
-    clean_text = "|".join(clean_tokens)
-    clean_text_alt = "|".join(clean_tokens_alt)
-    hints = {"parenthetical": parenthetical, "dropped": dropped}
+    hints: Dict[str, List[str] | bool] = {
+        "parenthetical": parenthetical,
+        "dropped": dropped,
+        "mutations": mutations,
+    }
+    if hints_mutations_only:
+        hints["mutations_only"] = True
     return NormalizationResult(
         raw=raw,
         clean_text=clean_text,
