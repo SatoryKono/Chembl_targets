@@ -201,6 +201,141 @@ RULES_GPCR: Sequence[
     (re.compile(r"\btp\b|\bthromboxane\s+receptor\b"), ["tp", "tbxa2r"]),
 ]
 
+# Additional GPCR-specific rules ------------------------------------------------
+
+RULES_GPCR_EXTRA: Sequence[
+    Tuple[re.Pattern[str], Sequence[str] | Callable[[re.Match[str]], Sequence[str]]]
+] = [
+    # 1) Calcitonin/CGRP/Amylin (CALCR, CALCRL + RAMP)
+    (
+        re.compile(r"\b(calcitonin|cgrp|amylin)\s+receptor\b(?!\s*\d)|\bcalcrl?\b"),
+        ["calcr", "calcrl", "ramp1", "ramp2", "ramp3"],
+    ),
+    (re.compile(r"\bcgrp\b"), ["calcrl", "ramp1", "ramp2", "ramp3"]),
+    (re.compile(r"\bamylin\b"), ["calcr", "ramp1", "ramp2", "ramp3"]),
+    # 2) Parathyroid hormone (PTH1R/PTH2R)
+    (
+        re.compile(
+            r"\bparathyroid\s+hormone\s+receptor\b(?!\s*\d)|\bpth\s*receptor\b(?!\s*\d)"
+        ),
+        ["pth1r", "pth2r"],
+    ),
+    (re.compile(r"\bpth\s*1\s*r?\b"), ["pth1r"]),
+    (re.compile(r"\bpth\s*2\s*r?\b"), ["pth2r"]),
+    # 3) Neuropeptide S (NPS)
+    (
+        re.compile(
+            r"\bneuropeptide\s*s\s+receptor\b(?!\s*\d)|\bnps\s*receptor\b(?!\s*\d)|\bnpsr1\b"
+        ),
+        ["npsr1"],
+    ),
+    # 4) Neuropeptide FF (NPFF)
+    (
+        re.compile(r"\bneuropeptide\s*ff\s+receptor\b(?!\s*\d)|\bnpffr\b"),
+        ["npffr1", "npffr2"],
+    ),
+    (re.compile(r"\bnpffr\s*([12])\b"), lambda m: [f"npffr{m.group(1)}"]),
+    # 5) Neuropeptide B/W (NPB/W)
+    (
+        re.compile(r"\bneuropeptide\s*(b|w)\s+receptor\b(?!\s*\d)|\bnpbwr\b"),
+        ["npbwr1", "npbwr2"],
+    ),
+    (re.compile(r"\bnpbwr\s*([12])\b"), lambda m: [f"npbwr{m.group(1)}"]),
+    # 6) Neuromedin U (NMU)
+    (
+        re.compile(r"\bneuromedin\s*u\s+receptor\b(?!\s*\d)|\bnmur\b"),
+        ["nmur1", "nmur2"],
+    ),
+    (re.compile(r"\bnmur\s*([12])\b"), lambda m: [f"nmur{m.group(1)}"]),
+    # 7) Kisspeptin (KISS1R)
+    (
+        re.compile(r"\bkisspeptin\s+receptor\b|\bgpr54\b|\bkiss1r\b"),
+        ["kiss1r", "gpr54"],
+    ),
+    # 8) Ghrelin (GHSR)
+    (re.compile(r"\bghrelin\s+receptor\b|\bghsr\b"), ["ghsr"]),
+    # 9) Motilin (MLNR)
+    (re.compile(r"\bmotilin\s+receptor\b|\bmlnr\b|\bgpr38\b"), ["mlnr", "gpr38"]),
+    # 10) Prolactin-releasing peptide (PRLHR)
+    (
+        re.compile(
+            r"\bprolactin-?releasing\s+peptide\s+receptor\b|\bprlhr\b|\bgpr10\b"
+        ),
+        ["prlhr", "gpr10"],
+    ),
+    # 11) Melanin-concentrating hormone (MCHR1/2)
+    (
+        re.compile(
+            r"\bmelanin-?concentrating\s+hormone\s+receptor\b(?!\s*\d)|\bmchr\b"
+        ),
+        ["mchr1", "mchr2"],
+    ),
+    (re.compile(r"\bmchr\s*([12])\b"), lambda m: [f"mchr{m.group(1)}"]),
+    # 12) Fractalkine (CX3CR1) и XCR1
+    (re.compile(r"\bfractalkine\s+receptor\b(?!\s*\d)|\bcx3cr1\b"), ["cx3cr1"]),
+    (
+        re.compile(r"\bxcr\s*1\b|\bxcr1\b|\b(xc)\s*chemokine\s+receptor\s*1\b"),
+        ["xcr1"],
+    ),
+    # 13) Platelet-activating factor (PTAFR)
+    (
+        re.compile(r"\bplatelet-?activating\s+factor\s+receptor\b(?!\s*\d)|\bptafr\b"),
+        ["ptafr"],
+    ),
+    # 14) Formyl peptide receptors (FPR1-3)
+    (
+        re.compile(r"\bformyl\s+peptide\s+receptor\b(?!\s*\d)|\bfpr\b"),
+        ["fpr1", "fpr2", "fpr3"],
+    ),
+    (re.compile(r"\bfpr\s*([1-3])\b"), lambda m: [f"fpr{m.group(1)}"]),
+    (re.compile(r"\balx\b"), ["fpr2"]),  # FPR2/ALX
+    # 15) Free fatty acid receptors (FFAR/GPR40/41/43/120 + GPR84)
+    (
+        re.compile(r"\bfree\s+fatty\s+acid\s+receptor\b(?!\s*\d)|\bffar\b"),
+        ["ffar1", "ffar2", "ffar3", "ffar4", "gpr84"],
+    ),
+    (re.compile(r"\bffar\s*([1-4])\b"), lambda m: [f"ffar{m.group(1)}"]),
+    (re.compile(r"\bgpr\s*120\b"), ["ffar4", "gpr120"]),
+    (re.compile(r"\bgpr\s*40\b"), ["ffar1", "gpr40"]),
+    (re.compile(r"\bgpr\s*41\b"), ["ffar3", "gpr41"]),
+    (re.compile(r"\bgpr\s*43\b"), ["ffar2", "gpr43"]),
+    (re.compile(r"\bgpr\s*84\b"), ["gpr84"]),
+    # 16) Hydroxycarboxylic acid (HCAR/GPR81/109A/109B)
+    (
+        re.compile(r"\bhydroxycarboxylic\s+acid\s+receptor\b(?!\s*\d)|\bhcar\b"),
+        ["hcar1", "hcar2", "hcar3"],
+    ),
+    (re.compile(r"\bhcar\s*([1-3])\b"), lambda m: [f"hcar{m.group(1)}"]),
+    (re.compile(r"\bgpr\s*81\b"), ["hcar1", "gpr81"]),
+    (re.compile(r"\bgpr\s*109\s*a\b|\bhcar2\b"), ["hcar2", "gpr109a"]),
+    (re.compile(r"\bgpr\s*109\s*b\b|\bhcar3\b"), ["hcar3", "gpr109b"]),
+    # 17) Trace amine-associated receptors (TAAR)
+    (
+        re.compile(r"\btrace\s+amine-?associated\s+receptor\b(?!\s*\d)|\btaar\b"),
+        [
+            "taar1",
+            "taar2",
+            "taar3",
+            "taar4",
+            "taar5",
+            "taar6",
+            "taar7",
+            "taar8",
+            "taar9",
+        ],
+    ),
+    (re.compile(r"\btaar\s*([1-9])\b"), lambda m: [f"taar{m.group(1)}"]),
+    # 18) Bile acid receptor (TGR5/GPBAR1)
+    (
+        re.compile(r"\bbile\s+acid\s+receptor\b(?!\s*\d)|\btgr5\b|\bgpbar1\b"),
+        ["gpbar1", "tgr5"],
+    ),
+    # 19) Urotensin II receptor (UTS2R)
+    (re.compile(r"\burotensin\s+ii\s+receptor\b|\buts2r\b"), ["uts2r"]),
+    # 20) Apelin receptor (APLNR)
+    (re.compile(r"\bapelin\s+receptor\b|\baplnr\b|\bagtrl1\b"), ["aplnr"]),
+]
+
 
 def gen_candidates(clean_text: str) -> List[str]:
     """Generate GPCR gene-like candidates based on ``clean_text``.
@@ -219,7 +354,7 @@ def gen_candidates(clean_text: str) -> List[str]:
 
     s = clean_text.lower()
     out: List[str] = []
-    for pat, val in RULES_GPCR:
+    for pat, val in list(RULES_GPCR) + list(RULES_GPCR_EXTRA):
         m = pat.search(s)
         if m:
             adds = val(m) if callable(val) else val

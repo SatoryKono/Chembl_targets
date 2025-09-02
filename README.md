@@ -71,6 +71,7 @@ Gene-like candidates are inferred via regex rules:
 - `neuropeptide y1 receptor` → `y1|npy1r` (family `neuropeptide y receptor` → `npy1r`–`npy5r`)
 - `melanocortin 4 receptor` → `mc4r` (family `melanocortin receptor` → `mc1r`–`mc5r`)
 - `prostaglandin ep3 receptor` → `ep3|ptger3` (family `prostaglandin receptor` → `ptger1`–`ptger4`, `ptgdr`, `ptgdr2`, `ptgfr`, `ptgir`, `tbxa2r`)
+- Additional GPCR families such as calcitonin/CGRP/amylin (CALCR/CALCRL + RAMP1–3), parathyroid hormone (PTH1R/2R), neuropeptide S/FF/B/W, neuromedin U, kisspeptin (KISS1R/GPR54), ghrelin (GHSR), motilin (MLNR/GPR38), prolactin-releasing peptide (PRLHR/GPR10), melanin-concentrating hormone (MCHR1/2), fractalkine (CX3CR1) and XCR1, platelet-activating factor (PTAFR), formyl peptide receptors (FPR1–3/ALX), free fatty acid and hydroxycarboxylic acid receptors (FFAR1–4/GPR40/41/43/120/84 and HCAR1–3/GPR81/109A/B), trace amine-associated receptors (TAAR1–9), bile acid (GPBAR1/TGR5), urotensin II (UTS2R) and apelin (APLNR) receptors.
 
 ## Development
 

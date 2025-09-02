@@ -188,6 +188,20 @@ def test_gpcr_family_and_alias_order() -> None:
     assert res.gene_like_candidates[:2] == ["ep3", "ptger3"]
 
 
+def test_gpcr_extra_rules() -> None:
+    res = normalize_target_name("kisspeptin receptor")
+    assert res.gene_like_candidates[:2] == ["kiss1r", "gpr54"]
+
+    res = normalize_target_name("gpr120")
+    assert res.gene_like_candidates[:2] == ["ffar4", "gpr120"]
+
+    res = normalize_target_name("alx")
+    assert res.gene_like_candidates == ["fpr2"]
+
+    res = normalize_target_name("tgr5")
+    assert res.gene_like_candidates[:2] == ["gpbar1", "tgr5"]
+
+
 def test_mutation_extraction_and_removal() -> None:
     res = normalize_target_name("hiv1 protease I84V mutant")
     assert res.clean_text == "hiv1 protease"
