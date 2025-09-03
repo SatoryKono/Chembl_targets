@@ -110,6 +110,11 @@ def test_letter_digit_space_variants():
     assert result.clean_text.split("|") == ["h3", "h-3"]
 
 
+def test_comma_between_digits_preserved() -> None:
+    res = normalize_target_name("1,25-oh 2d3")
+    assert res.query_tokens[:3] == ["1,25", "oh", "2d3"]
+
+
 def test_parenthetical_complex_indices():
     res1 = normalize_target_name("p2x receptor (p2x7)")
     assert "p2x7" in res1.query_tokens
@@ -240,6 +245,31 @@ def test_gpcr_extra_rules() -> None:
 
     res = normalize_target_name("tgr5")
     assert res.gene_like_candidates[:2] == ["gpbar1", "tgr5"]
+
+
+def test_custom_candidate_rules() -> None:
+    res = normalize_target_name("sigma receptor")
+    assert res.gene_like_candidates == ["sigmar1", "tmem97"]
+
+    res = normalize_target_name("dopamine receptor")
+    assert res.gene_like_candidates == [
+        "drd1",
+        "drd2",
+        "drd3",
+        "drd4",
+        "drd5",
+    ]
+
+
+def test_ion_channel_rules() -> None:
+    res = normalize_target_name("Nav1.7 sodium channel")
+    assert res.gene_like_candidates[:2] == ["scn9a", "nav1.7"]
+
+    res = normalize_target_name("Nav1.8 channel")
+    assert res.gene_like_candidates[:2] == ["scn10a", "nav1.8"]
+
+    res = normalize_target_name("Nav1 8 channel")
+    assert "scn10a" not in res.gene_like_candidates
 
 
 def test_mutation_extraction_and_removal() -> None:

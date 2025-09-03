@@ -348,6 +348,1033 @@ RULES_GPCR_EXTRA: Sequence[
     (re.compile(r"\bapelin\s+receptor\b|\baplnr\b|\bagtrl1\b"), ["aplnr"]),
 ]
 
+# ---------------------------------------------------------------------------
+# Additional candidate rules supplied via domain-specific mapping
+
+CandidateRule = Tuple[
+    re.Pattern[str],
+    Sequence[str] | Callable[[re.Match[str]], Sequence[str]],
+    bool,
+]
+
+# Flexible separator "word - word" etc.
+CUSTOM_SP = r"\s*[- ]\s*"
+
+RULES_CUSTOM: Sequence[CandidateRule] = [
+    # ===== HISTAMINE =====
+    # H3
+    (
+        re.compile(
+            rf"\b(h3r|h3{CUSTOM_SP}receptor|histamine{CUSTOM_SP}3{CUSTOM_SP}receptor)\b"
+        ),
+        ["h3r", "hrh3"],
+        False,
+    ),
+    # H4
+    (
+        re.compile(
+            rf"\b(h4r|h4{CUSTOM_SP}receptor|histamine{CUSTOM_SP}4{CUSTOM_SP}receptor)\b"
+        ),
+        ["h4r", "hrh4"],
+        False,
+    ),
+    # ===== PROSTAGLANDIN / CRTH2 =====
+    (
+        re.compile(
+            rf"\b(chemoattractant{CUSTOM_SP}receptor{CUSTOM_SP}homologous{CUSTOM_SP}molecule|crth2|gpr44|dp2|prostaglandin{CUSTOM_SP}d2{CUSTOM_SP}receptor\b.*(type|2)?)\b"
+        ),
+        ["crth2", "gpr44", "ptgdr2", "dp2"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(prostanoid{CUSTOM_SP}dp{CUSTOM_SP}receptor|dp{CUSTOM_SP}receptor|dp\b(?!\d))\b"
+        ),
+        ["dp1", "ptgdr"],
+        False,
+    ),
+    (
+        re.compile(rf"\bprostaglandin{CUSTOM_SP}d2{CUSTOM_SP}receptor\b"),
+        ["dp1", "ptgdr", "dp2", "ptgdr2"],
+        False,
+    ),
+    # ===== NPFF =====
+    (re.compile(rf"\bnpff2{CUSTOM_SP}receptor\b"), ["npffr2"], False),
+    (re.compile(rf"\bnpff1{CUSTOM_SP}receptor\b"), ["npffr1"], False),
+    # ===== SIGMA =====
+    (
+        re.compile(
+            rf"\b(sigma{CUSTOM_SP}1{CUSTOM_SP}opioid{CUSTOM_SP}receptor|sigma1{CUSTOM_SP}opioid{CUSTOM_SP}receptor|sigma1{CUSTOM_SP}receptor|sigma{CUSTOM_SP}1{CUSTOM_SP}receptor|sigma-?1{CUSTOM_SP}receptor|sigma1-?receptor)\b"
+        ),
+        ["sigmar1"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(sigma{CUSTOM_SP}2{CUSTOM_SP}receptor|sigma2{CUSTOM_SP}receptor|sigma-?2{CUSTOM_SP}receptor|sigma{CUSTOM_SP}receptor{CUSTOM_SP}type{CUSTOM_SP}2)\b"
+        ),
+        ["tmem97", "sigma2r"],
+        False,
+    ),
+    (re.compile(rf"\bsigma{CUSTOM_SP}receptor\b"), ["sigmar1", "tmem97"], True),
+    # ===== IMIDAZOLINE I1 =====
+    (
+        re.compile(
+            rf"\b(imidazoline{CUSTOM_SP}i\s*1{CUSTOM_SP}receptor|imidazoline{CUSTOM_SP}receptor{CUSTOM_SP}1|i1{CUSTOM_SP}imidazoline{CUSTOM_SP}receptor|i1{CUSTOM_SP}receptor{CUSTOM_SP}imidazoline)\b"
+        ),
+        ["i1r", "nisch"],
+        True,
+    ),
+    # ===== UROTENSIN II =====
+    (re.compile(rf"\burotensin{CUSTOM_SP}2{CUSTOM_SP}receptor\b"), ["uts2r"], False),
+    # ===== LEUKOTRIENE / CysLT =====
+    (
+        re.compile(
+            rf"\b(cyslt2{CUSTOM_SP}receptor|cysteinyl{CUSTOM_SP}leukotriene{CUSTOM_SP}receptor{CUSTOM_SP}2)\b"
+        ),
+        ["cysltr2"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(cyslt1{CUSTOM_SP}receptor|cysteinyl{CUSTOM_SP}leukotriene{CUSTOM_SP}receptor{CUSTOM_SP}1|leukotriene{CUSTOM_SP}d4{CUSTOM_SP}receptor|cysteinyl{CUSTOM_SP}leukotriene{CUSTOM_SP}d4{CUSTOM_SP}receptor|ltd4{CUSTOM_SP}receptor)\b"
+        ),
+        ["cysltr1"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(leukotriene{CUSTOM_SP}b4{CUSTOM_SP}receptor|ltb4{CUSTOM_SP}receptor)\b"
+        ),
+        ["ltb4r", "ltb4r2"],
+        False,
+    ),
+    # ===== P2Y / P2Y-like =====
+    (re.compile(rf"\bp2y1{CUSTOM_SP}receptor\b"), ["p2ry1"], False),
+    (re.compile(rf"\bp2y2{CUSTOM_SP}receptor\b"), ["p2ry2"], False),
+    (re.compile(rf"\bp2y4{CUSTOM_SP}receptor\b"), ["p2ry4"], False),
+    (re.compile(rf"\bp2y6{CUSTOM_SP}receptor\b"), ["p2ry6"], False),
+    (re.compile(rf"\bp2y12{CUSTOM_SP}receptor\b"), ["p2ry12"], False),
+    (re.compile(rf"\bp2y14{CUSTOM_SP}receptor\b"), ["p2ry14"], False),
+    # ===== S1P / LPA =====
+    (
+        re.compile(
+            rf"\b(s1p5{CUSTOM_SP}receptor|sphingosine{CUSTOM_SP}1{CUSTOM_SP}phosphate{CUSTOM_SP}receptor{CUSTOM_SP}5)\b"
+        ),
+        ["s1pr5"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(s1p3{CUSTOM_SP}receptor|sphingosine{CUSTOM_SP}1{CUSTOM_SP}phosphate{CUSTOM_SP}receptor{CUSTOM_SP}3)\b"
+        ),
+        ["s1pr3"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(s1p1r{CUSTOM_SP}receptor|s1p1{CUSTOM_SP}receptor|sphingosine{CUSTOM_SP}1{CUSTOM_SP}phosphate{CUSTOM_SP}receptor{CUSTOM_SP}1)\b"
+        ),
+        ["s1pr1"],
+        False,
+    ),
+    (re.compile(rf"\bs1p{CUSTOM_SP}receptor\b"), ["s1pr1"], True),
+    (
+        re.compile(
+            rf"\b(s1p4{CUSTOM_SP}receptor|sphingosine{CUSTOM_SP}1{CUSTOM_SP}phosphate{CUSTOM_SP}receptor{CUSTOM_SP}4)\b"
+        ),
+        ["s1pr4"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(s1p2{CUSTOM_SP}receptor|sphingosine{CUSTOM_SP}1{CUSTOM_SP}phosphate{CUSTOM_SP}receptor{CUSTOM_SP}2)\b"
+        ),
+        ["s1pr2"],
+        False,
+    ),
+    (re.compile(rf"\b(lpa1{CUSTOM_SP}receptor)\b"), ["lpar1"], False),
+    (re.compile(rf"\b(lpa5{CUSTOM_SP}receptor)\b"), ["lpar5"], False),
+    # ===== LIGAND GPCRs =====
+    (re.compile(rf"\bgpr35{CUSTOM_SP}receptor\b"), ["gpr35"], False),
+    (
+        re.compile(rf"\bgpr103{CUSTOM_SP}receptor\b"),
+        ["gpr103", "qrfpr"],
+        False,
+    ),
+    (
+        re.compile(rf"\bgpr10a{CUSTOM_SP}receptor\b"),
+        ["prlhr", "gpr10"],
+        False,
+    ),
+    (
+        re.compile(rf"\bgpr154{CUSTOM_SP}receptor\b"),
+        ["npsr1", "gpr154"],
+        False,
+    ),
+    (re.compile(rf"\bebi2{CUSTOM_SP}receptor\b"), ["gpr183", "ebi2"], False),
+    (
+        re.compile(rf"\b(ffar1{CUSTOM_SP}receptor|ffa1{CUSTOM_SP}receptor)\b"),
+        ["ffar1", "gpr40"],
+        False,
+    ),
+    (re.compile(rf"\bffa2{CUSTOM_SP}receptor\b"), ["ffar2", "gpr43"], False),
+    # ===== OXE / HCA (niacin) =====
+    (
+        re.compile(
+            rf"\b(oxe{CUSTOM_SP}receptor|5{CUSTOM_SP}oxo{CUSTOM_SP}ete{CUSTOM_SP}receptor)\b"
+        ),
+        ["oxer1"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(grp109a{CUSTOM_SP}receptor|hca2{CUSTOM_SP}receptor|niacin{CUSTOM_SP}receptor)\b"
+        ),
+        ["hcar2", "gpr109a"],
+        False,
+    ),
+    # ===== OPIOID FAMILY =====
+    (
+        re.compile(
+            rf"\b(mu|mop|mu-?type|mu1|mu2){CUSTOM_SP}(opioid|receptor)\b|\b(opioid{CUSTOM_SP}receptor{CUSTOM_SP}mu(\s*1|\s*2)?)\b|\bmu{CUSTOM_SP}opioid{CUSTOM_SP}receptor\b"
+        ),
+        ["mor", "oprm1"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(kappa|kop|k-?opioid|kappa1){CUSTOM_SP}(opioid|receptor)\b|\bopioid{CUSTOM_SP}receptor{CUSTOM_SP}kappa\b"
+        ),
+        ["kor", "oprk1"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(delta){CUSTOM_SP}(opioid|receptor)\b|\bopioid{CUSTOM_SP}receptor{CUSTOM_SP}delta\b"
+        ),
+        ["dor", "oprd1"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(nociceptin{CUSTOM_SP}opioid{CUSTOM_SP}receptor|nociceptin{CUSTOM_SP}receptor|orphanin{CUSTOM_SP}fq{CUSTOM_SP}receptor|horl1{CUSTOM_SP}receptor|orl1{CUSTOM_SP}receptor)\b"
+        ),
+        ["nop", "orl1", "oprl1"],
+        False,
+    ),
+    (
+        re.compile(rf"\bopioid{CUSTOM_SP}receptor(s)?\b"),
+        ["oprm1", "oprk1", "oprd1", "oprl1"],
+        True,
+    ),
+    # ===== MELANIN CONCENTRATING HORMONE (MCHR1) =====
+    (
+        re.compile(
+            rf"\b(machr1{CUSTOM_SP}receptor|mch1\){CUSTOM_SP}receptor|mch1r{CUSTOM_SP}receptor|mch1{CUSTOM_SP}receptor|melanin{CUSTOM_SP}concentrating{CUSTOM_SP}hormone(\b|{CUSTOM_SP})1{CUSTOM_SP}receptor|melanin{CUSTOM_SP}-{CUSTOM_SP}concentrating{CUSTOM_SP}hormone(\b|{CUSTOM_SP})1{CUSTOM_SP}receptor)\b"
+        ),
+        ["mchr1"],
+        False,
+    ),
+    # ===== GHSR =====
+    (
+        re.compile(
+            rf"\b(ghsr1a{CUSTOM_SP}receptor|growth{CUSTOM_SP}hormone{CUSTOM_SP}secretagogue{CUSTOM_SP}receptor|ghs1a{CUSTOM_SP}receptor|ghs{CUSTOM_SP}receptor|grln{CUSTOM_SP}receptor)\b"
+        ),
+        ["ghsr", "ghsr1a"],
+        False,
+    ),
+    # ===== ESTROGEN RECEPTORS =====
+    (
+        re.compile(
+            rf"\b(erbeta{CUSTOM_SP}receptor|estrogen{CUSTOM_SP}receptor(\b|{CUSTOM_SP})-?{CUSTOM_SP}beta|estrogen{CUSTOM_SP}receptor{CUSTOM_SP}2)\b"
+        ),
+        ["er beta", "esr2"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(estrogen{CUSTOM_SP}receptor(\b|{CUSTOM_SP})-?{CUSTOM_SP}alpha|eralpha{CUSTOM_SP}receptor)\b"
+        ),
+        ["er alpha", "esr1"],
+        False,
+    ),
+    # ===== MUSCARINIC =====
+    (
+        re.compile(
+            rf"\bmuscarinic{CUSTOM_SP}(acetylcholine{CUSTOM_SP})?receptor{CUSTOM_SP}m3\b|\bmuscarinic{CUSTOM_SP}m3{CUSTOM_SP}receptor\b|\bm3{CUSTOM_SP}muscarinic{CUSTOM_SP}receptor\b"
+        ),
+        ["m3", "chrm3"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bmuscarinic{CUSTOM_SP}(acetylcholine{CUSTOM_SP})?receptor{CUSTOM_SP}m2\b|\bmuscarinic{CUSTOM_SP}m2{CUSTOM_SP}receptor\b"
+        ),
+        ["m2", "chrm2"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bmuscarinic{CUSTOM_SP}(acetylcholine{CUSTOM_SP})?receptor{CUSTOM_SP}m1\b|\bmuscarinic{CUSTOM_SP}m1{CUSTOM_SP}receptor\b"
+        ),
+        ["m1", "chrm1"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bmuscarinic{CUSTOM_SP}(acetylcholine{CUSTOM_SP})?receptor{CUSTOM_SP}m4\b|\bmuscarinic{CUSTOM_SP}m4{CUSTOM_SP}receptor\b"
+        ),
+        ["m4", "chrm4"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bmuscarinic{CUSTOM_SP}(acetylcholine{CUSTOM_SP})?receptor{CUSTOM_SP}m5\b|\bmuscarinic{CUSTOM_SP}m5{CUSTOM_SP}receptor\b"
+        ),
+        ["m5", "chrm5"],
+        False,
+    ),
+    # ===== ADENOSINE =====
+    (
+        re.compile(
+            rf"\b(a2b{CUSTOM_SP}receptor|adenosine{CUSTOM_SP}2b{CUSTOM_SP}receptor)\b"
+        ),
+        ["a2b", "adora2b"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(a2a{CUSTOM_SP}receptor|adenosine{CUSTOM_SP}2a{CUSTOM_SP}receptor)\b"
+        ),
+        ["a2a", "adora2a"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(adenosine{CUSTOM_SP}a3a{CUSTOM_SP}receptor|a3a{CUSTOM_SP}receptor|a3{CUSTOM_SP}receptor)\b"
+        ),
+        ["a3", "adora3"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(adenosine{CUSTOM_SP}a{CUSTOM_SP}receptor|adenosine{CUSTOM_SP}receptor)\b"
+        ),
+        ["adora1", "adora2a", "adora2b", "adora3"],
+        True,
+    ),
+    # ===== MELATONIN =====
+    (
+        re.compile(
+            rf"\b(mt2(\s|$)|mt2{CUSTOM_SP}melatonin{CUSTOM_SP}receptor|melatonin{CUSTOM_SP}receptor(\b|{CUSTOM_SP})-?{CUSTOM_SP}2|melatonin{CUSTOM_SP}receptor{CUSTOM_SP}type{CUSTOM_SP}2|melatonin{CUSTOM_SP}receptor{CUSTOM_SP}type{CUSTOM_SP}1b|melatonin{CUSTOM_SP}mt2{CUSTOM_SP}receptor)\b"
+        ),
+        ["mt2", "mtnr1b"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(mt1(\s|$)|mt1a{CUSTOM_SP}receptor|ml1a{CUSTOM_SP}receptor|mt1{CUSTOM_SP}melatonin{CUSTOM_SP}receptor|melatonin{CUSTOM_SP}receptor(\b|{CUSTOM_SP})-?{CUSTOM_SP}1|melatonin{CUSTOM_SP}receptor{CUSTOM_SP}type{CUSTOM_SP}1a)\b"
+        ),
+        ["mt1", "mtnr1a"],
+        False,
+    ),
+    # ===== TRP =====
+    (re.compile(rf"\btrmp8{CUSTOM_SP}receptor\b"), ["trpm8"], False),
+    (
+        re.compile(
+            rf"\b(transient{CUSTOM_SP}receptor{CUSTOM_SP}potential{CUSTOM_SP}vanilloid(\s*type)?{CUSTOM_SP}1|vanilloid{CUSTOM_SP}receptor(\s*subtype)?{CUSTOM_SP}vr?1|vr1{CUSTOM_SP}receptor|trpv1{CUSTOM_SP}receptor)\b"
+        ),
+        ["trpv1", "vr1"],
+        False,
+    ),
+    # ===== SMO =====
+    (
+        re.compile(rf"\b(smo{CUSTOM_SP}receptor|smoothened{CUSTOM_SP}receptor)\b"),
+        ["smo"],
+        False,
+    ),
+    # ===== MGLU / iGluR / NMDA / AMPA / KA =====
+    (
+        re.compile(rf"\bmglu1(\b|{CUSTOM_SP}receptor|{CUSTOM_SP}receptors)\b"),
+        ["grm1"],
+        False,
+    ),
+    (
+        re.compile(rf"\bmglu2(\b|{CUSTOM_SP}receptor|{CUSTOM_SP}receptors)\b"),
+        ["grm2"],
+        False,
+    ),
+    (
+        re.compile(rf"\bmglu3(\b|{CUSTOM_SP}receptor|{CUSTOM_SP}receptors)\b"),
+        ["grm3"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bmglu5a{CUSTOM_SP}receptor\b|\bmglu5{CUSTOM_SP}receptor\b|\bglutamate{CUSTOM_SP}receptor{CUSTOM_SP}5\b"
+        ),
+        ["grm5"],
+        False,
+    ),
+    (re.compile(rf"\bmglu7{CUSTOM_SP}receptor\b"), ["grm7"], False),
+    (re.compile(rf"\biglur5{CUSTOM_SP}receptor\b"), ["grik1"], False),
+    (
+        re.compile(
+            rf"\biglur6{CUSTOM_SP}receptor|iontropic{CUSTOM_SP}glutamate{CUSTOM_SP}receptor{CUSTOM_SP}6\b"
+        ),
+        ["grik2"],
+        False,
+    ),
+    (re.compile(rf"\biglur7{CUSTOM_SP}receptor\b"), ["grik3"], False),
+    (re.compile(rf"\bglun2a{CUSTOM_SP}receptor\b"), ["grin2a"], False),
+    (re.compile(rf"\bglun2b{CUSTOM_SP}receptor\b"), ["grin2b"], False),
+    (re.compile(rf"\beaat1{CUSTOM_SP}receptor\b"), ["slc1a3"], False),
+    # ===== SEROTONIN =====
+    (
+        re.compile(
+            rf"\b(5{CUSTOM_SP}hydroxy{CUSTOM_SP}?tryptamine|5{CUSTOM_SP}?-?ht){CUSTOM_SP}6{CUSTOM_SP}receptor|ht6{CUSTOM_SP}receptor\b"
+        ),
+        ["htr6"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(5{CUSTOM_SP}?-?ht|5{CUSTOM_SP}hydroxy{CUSTOM_SP}?tryptamine){CUSTOM_SP}5a{CUSTOM_SP}receptor\b"
+        ),
+        ["htr5a"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(5{CUSTOM_SP}?-?ht|5{CUSTOM_SP}hydroxy{CUSTOM_SP}?tryptamine){CUSTOM_SP}2a{CUSTOM_SP}receptor\b"
+        ),
+        ["htr2a"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(5{CUSTOM_SP}?-?ht|5{CUSTOM_SP}hydroxy{CUSTOM_SP}?tryptamine){CUSTOM_SP}2b{CUSTOM_SP}receptor\b"
+        ),
+        ["htr2b"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(5{CUSTOM_SP}?-?ht|5{CUSTOM_SP}hydroxy{CUSTOM_SP}?tryptamine){CUSTOM_SP}1a{CUSTOM_SP}receptor\b|hydroxytryptamine{CUSTOM_SP}1a{CUSTOM_SP}receptor\b"
+        ),
+        ["htr1a"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(5{CUSTOM_SP}?-?ht|5{CUSTOM_SP}hydroxy{CUSTOM_SP}?tryptamine){CUSTOM_SP}1b{CUSTOM_SP}receptor\b"
+        ),
+        ["htr1b"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(5{CUSTOM_SP}?-?ht|5{CUSTOM_SP}hydroxy{CUSTOM_SP}?tryptamine){CUSTOM_SP}1d{CUSTOM_SP}receptor\b"
+        ),
+        ["htr1d"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(5{CUSTOM_SP}?-?ht|5{CUSTOM_SP}hydroxy{CUSTOM_SP}?tryptamine){CUSTOM_SP}1f{CUSTOM_SP}receptor\b"
+        ),
+        ["htr1f"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(5{CUSTOM_SP}?-?ht|5{CUSTOM_SP}hydroxy{CUSTOM_SP}?tryptamine){CUSTOM_SP}7{CUSTOM_SP}receptor\b"
+        ),
+        ["htr7"],
+        False,
+    ),
+    (re.compile(rf"\b(ht3a{CUSTOM_SP}receptor)\b"), ["htr3a"], False),
+    # ===== NPY =====
+    (re.compile(rf"\bnpyy5{CUSTOM_SP}receptor\b"), ["npy5r"], False),
+    (re.compile(rf"\bnpyy2{CUSTOM_SP}receptor\b"), ["npy2r"], False),
+    (re.compile(rf"\bny4{CUSTOM_SP}receptor\b"), ["npy4r"], False),
+    # ===== VASOPRESSIN / OXYTOCIN =====
+    (
+        re.compile(rf"\bvasopressin{CUSTOM_SP}receptor\b"),
+        ["avpr1a", "avpr1b", "avpr2"],
+        True,
+    ),
+    (
+        re.compile(
+            rf"\bvasopressin{CUSTOM_SP}v1a{CUSTOM_SP}receptor|v1a{CUSTOM_SP}receptor\b"
+        ),
+        ["avpr1a"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bvasopressin{CUSTOM_SP}v1b{CUSTOM_SP}receptor|v1b{CUSTOM_SP}receptor\b"
+        ),
+        ["avpr1b"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bvasopressin{CUSTOM_SP}v2{CUSTOM_SP}receptor|v2{CUSTOM_SP}receptor|v2{CUSTOM_SP}vasopressin{CUSTOM_SP}receptor\b"
+        ),
+        ["avpr2"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\boxytocin{CUSTOM_SP}receptor|ot(r|{CUSTOM_SP}receptor)|oxr{CUSTOM_SP}receptor\b"
+        ),
+        ["oxtr"],
+        False,
+    ),
+    # ===== ANGIOTENSIN =====
+    (
+        re.compile(
+            rf"\b(angiotensin{CUSTOM_SP}ii{CUSTOM_SP}receptor(\s*,)?(\s*type)?{CUSTOM_SP}1|at-?1{CUSTOM_SP}receptor|angiotensin{CUSTOM_SP}2{CUSTOM_SP}type{CUSTOM_SP}-?{CUSTOM_SP}1{CUSTOM_SP}receptor|angiotensin{CUSTOM_SP}2{CUSTOM_SP}receptor{CUSTOM_SP}type{CUSTOM_SP}1|angiotensin{CUSTOM_SP}2{CUSTOM_SP}at1{CUSTOM_SP}receptor|angiotensin{CUSTOM_SP}1{CUSTOM_SP}receptor)\b"
+        ),
+        ["agtr1"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(type{CUSTOM_SP}-?{CUSTOM_SP}2{CUSTOM_SP}angiotensin{CUSTOM_SP}-?{CUSTOM_SP}2{CUSTOM_SP}receptor|at2{CUSTOM_SP}receptor|angiotensin{CUSTOM_SP}ii{CUSTOM_SP}receptor(\s*,)?(\s*type)?{CUSTOM_SP}2)\b"
+        ),
+        ["agtr2"],
+        False,
+    ),
+    # ===== CHEMOKINE =====
+    (
+        re.compile(
+            rf"\bchemokine{CUSTOM_SP}receptor{CUSTOM_SP}5\b|\bc-?c{CUSTOM_SP}chemokine{CUSTOM_SP}receptor{CUSTOM_SP}type{CUSTOM_SP}5\b"
+        ),
+        ["ccr5"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bc-?c{CUSTOM_SP}chemokine{CUSTOM_SP}receptor{CUSTOM_SP}type{CUSTOM_SP}4\b"
+        ),
+        ["ccr4"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bc-?c{CUSTOM_SP}chemokine{CUSTOM_SP}receptor{CUSTOM_SP}type{CUSTOM_SP}3\b"
+        ),
+        ["ccr3"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bcxc{CUSTOM_SP}chemokine{CUSTOM_SP}receptor{CUSTOM_SP}1\b|interleukin{CUSTOM_SP}-?{CUSTOM_SP}8{CUSTOM_SP}receptor\b"
+        ),
+        ["cxcr1"],
+        False,
+    ),
+    (
+        re.compile(rf"\bcxc{CUSTOM_SP}chemokine{CUSTOM_SP}receptor{CUSTOM_SP}2\b"),
+        ["cxcr2"],
+        False,
+    ),
+    (
+        re.compile(rf"\bcx3c{CUSTOM_SP}chemokine{CUSTOM_SP}receptor{CUSTOM_SP}[35]\b"),
+        ["cx3cr1"],
+        True,
+    ),
+    # ===== MELANOCORTIN =====
+    (re.compile(r"\bmc3r(eceptor)?\b"), ["mc3r"], False),
+    # ===== CNR / CANNABINOID =====
+    (
+        re.compile(
+            rf"\b(cb1{CUSTOM_SP}receptor|cannabinoid{CUSTOM_SP}-?{CUSTOM_SP}1{CUSTOM_SP}receptor|cannabinoid{CUSTOM_SP}receptor{CUSTOM_SP}1|cannabinoid{CUSTOM_SP}cb1{CUSTOM_SP}receptor)\b"
+        ),
+        ["cb1", "cnr1"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(cb2{CUSTOM_SP}receptor|cannabinoid{CUSTOM_SP}receptors?{CUSTOM_SP}2|cannabinoid{CUSTOM_SP}cb2{CUSTOM_SP}receptor|cannabinoid{CUSTOM_SP}receptor{CUSTOM_SP}2)\b"
+        ),
+        ["cb2", "cnr2"],
+        False,
+    ),
+    # ===== DP/EP/IP/TP (PROSTANOID) =====
+    (
+        re.compile(
+            rf"\bprostaglandin{CUSTOM_SP}i2{CUSTOM_SP}receptor|pgi2{CUSTOM_SP}receptor\b"
+        ),
+        ["ip", "ptgir"],
+        False,
+    ),
+    (
+        re.compile(rf"\bprostaglandin{CUSTOM_SP}e{CUSTOM_SP}receptor\b"),
+        ["ptger1", "ptger2", "ptger3", "ptger4"],
+        True,
+    ),
+    (
+        re.compile(
+            rf"\bep3(alpha|c)?{CUSTOM_SP}receptor|prostaglandin{CUSTOM_SP}ep3alpha{CUSTOM_SP}receptor\b"
+        ),
+        ["ep3", "ptger3"],
+        False,
+    ),
+    # ===== ADRENERGIC =====
+    (
+        re.compile(
+            rf"\bbeta2(\s*adrenoreceptor|\s*receptor|\s*-?{CUSTOM_SP}adrenergic{CUSTOM_SP}receptor|{CUSTOM_SP}-?receptor)\b"
+        ),
+        ["adrb2"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bbeta1{CUSTOM_SP}adrenergic{CUSTOM_SP}receptor|beta-?{CUSTOM_SP}1{CUSTOM_SP}adrenergic{CUSTOM_SP}receptor|beta1{CUSTOM_SP}receptor\b"
+        ),
+        ["adrb1"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\balpha1a(\s*-?{CUSTOM_SP}adrenergic{CUSTOM_SP}receptor|\s*receptor|{CUSTOM_SP}-?adrenoreceptor)\b"
+        ),
+        ["adra1a"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\balpha1b(\s*-?{CUSTOM_SP}adrenergic{CUSTOM_SP}receptor|\s*receptor|{CUSTOM_SP}-?adrenoreceptor)\b"
+        ),
+        ["adra1b"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\balpha1d(\s*-?{CUSTOM_SP}adrenergic{CUSTOM_SP}receptor|\s*receptor|{CUSTOM_SP}-?adrenoreceptor)\b|\balpha1c{CUSTOM_SP}receptor\b"
+        ),
+        ["adra1d", "adra1a"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\balpha2a(\s*-?{CUSTOM_SP}adrenergic{CUSTOM_SP}receptor|\s*receptor)\b"
+        ),
+        ["adra2a"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\balpha2b(\s*-?{CUSTOM_SP}adrenergic{CUSTOM_SP}receptor|\s*receptor)\b"
+        ),
+        ["adra2b"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\balpha2c(\s*-?{CUSTOM_SP}adrenergic{CUSTOM_SP}receptor|\s*receptor)\b"
+        ),
+        ["adra2c"],
+        False,
+    ),
+    # ===== DOPAMINE =====
+    (
+        re.compile(
+            rf"\bdopaminergic{CUSTOM_SP}d2{CUSTOM_SP}receptor|drd2(\s|\b)|dopamine{CUSTOM_SP}receptor{CUSTOM_SP}d2(l|s)?|dopamine{CUSTOM_SP}d2(l|s)?{CUSTOM_SP}receptor|d2(l|s)?{CUSTOM_SP}receptor\b"
+        ),
+        ["drd2"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bdopamine{CUSTOM_SP}d3{CUSTOM_SP}receptor|drd3{CUSTOM_SP}receptor|d3{CUSTOM_SP}receptor\b"
+        ),
+        ["drd3"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bd5{CUSTOM_SP}dopamine{CUSTOM_SP}receptor|d5{CUSTOM_SP}receptor\b"
+        ),
+        ["drd5"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bd4(\.4)?{CUSTOM_SP}receptor|dopamine{CUSTOM_SP}receptor{CUSTOM_SP}4(\.4)?|d4{CUSTOM_SP}dopamine{CUSTOM_SP}receptor\b"
+        ),
+        ["drd4"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bd1{CUSTOM_SP}dopamine{CUSTOM_SP}receptor|d1{CUSTOM_SP}receptor\b"
+        ),
+        ["drd1"],
+        False,
+    ),
+    (
+        re.compile(rf"\bdopamine{CUSTOM_SP}receptor(s)?\b"),
+        ["drd1", "drd2", "drd3", "drd4", "drd5"],
+        True,
+    ),
+    # ===== NUCLEAR RECEPTORS / прочее НЕ-GPCR =====
+    (
+        re.compile(
+            rf"\bliver{CUSTOM_SP}x{CUSTOM_SP}receptor(\b|{CUSTOM_SP})-?{CUSTOM_SP}alpha|lxr{CUSTOM_SP}alpha{CUSTOM_SP}receptor\b"
+        ),
+        ["nr1h3"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bliver{CUSTOM_SP}x{CUSTOM_SP}receptor(\b|{CUSTOM_SP})-?{CUSTOM_SP}beta|lxr{CUSTOM_SP}beta{CUSTOM_SP}receptor\b"
+        ),
+        ["nr1h2"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bppar(alpha|{CUSTOM_SP}alpha){CUSTOM_SP}receptor|peroxisome{CUSTOM_SP}proliferator{CUSTOM_SP}activated{CUSTOM_SP}receptor{CUSTOM_SP}alpha\b"
+        ),
+        ["ppara"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bppar(gamma|{CUSTOM_SP}-?{CUSTOM_SP}gamma){CUSTOM_SP}receptor|peroxisome{CUSTOM_SP}proliferator{CUSTOM_SP}-?{CUSTOM_SP}activated{CUSTOM_SP}receptor{CUSTOM_SP}gamma\b"
+        ),
+        ["pparg"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bppar{CUSTOM_SP}delta{CUSTOM_SP}receptor|ppardelta{CUSTOM_SP}receptor\b"
+        ),
+        ["ppard"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bretinoid{CUSTOM_SP}x{CUSTOM_SP}receptor(\b|{CUSTOM_SP})-?{CUSTOM_SP}alpha|rxr{CUSTOM_SP}alpha\b"
+        ),
+        ["rxra"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bretinoid{CUSTOM_SP}x{CUSTOM_SP}receptor(\b|{CUSTOM_SP})-?{CUSTOM_SP}beta|rxr{CUSTOM_SP}beta\b"
+        ),
+        ["rxrb"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bretinoid{CUSTOM_SP}x{CUSTOM_SP}receptor(\b|{CUSTOM_SP})-?{CUSTOM_SP}gamma|rxr{CUSTOM_SP}gamma\b"
+        ),
+        ["rxrg"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bretinoic{CUSTOM_SP}acid{CUSTOM_SP}receptor(\b|{CUSTOM_SP})-?{CUSTOM_SP}gamma\b"
+        ),
+        ["rarg"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bestrogen{CUSTOM_SP}related{CUSTOM_SP}receptor{CUSTOM_SP}gamma\b"
+        ),
+        ["esrrg"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bthyroid{CUSTOM_SP}hormone{CUSTOM_SP}receptor{CUSTOM_SP}beta(\s*-?\s*1)?\b"
+        ),
+        ["thrb"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bthyroid{CUSTOM_SP}hormone{CUSTOM_SP}receptor{CUSTOM_SP}alpha(\s*-?\s*1)?\b"
+        ),
+        ["thra"],
+        False,
+    ),
+    (re.compile(rf"\bglucagon{CUSTOM_SP}receptor\b"), ["gcgr"], False),
+    (re.compile(rf"\bglp1{CUSTOM_SP}receptor\b"), ["glp1r"], False),
+    (re.compile(rf"\bgipr{CUSTOM_SP}receptor\b"), ["gipr"], False),
+    (re.compile(rf"\bcd69{CUSTOM_SP}receptor\b"), ["cd69"], False),
+    (
+        re.compile(
+            rf"\b(alpha|nicotinic){CUSTOM_SP}(\-?\s*)7{CUSTOM_SP}(nicotinic{CUSTOM_SP})?acetylcholine{CUSTOM_SP}receptor|chrna7\b"
+        ),
+        ["chrna7", "nachr alpha7"],
+        False,
+    ),
+    (re.compile(rf"\bc3a{CUSTOM_SP}receptor\b"), ["c3ar1"], False),
+    (re.compile(rf"\bgp6{CUSTOM_SP}receptor\b"), ["gp6"], False),
+    (
+        re.compile(
+            rf"\bppar(gamma|{CUSTOM_SP}-?{CUSTOM_SP}gamma){CUSTOM_SP}receptor\b"
+        ),
+        ["pparg"],
+        False,
+    ),
+    (re.compile(rf"\bcalcium{CUSTOM_SP}sensing{CUSTOM_SP}receptor\b"), ["casr"], False),
+    (re.compile(rf"\bip3{CUSTOM_SP}receptor\b"), ["itpr1", "itpr2", "itpr3"], True),
+    (
+        re.compile(
+            rf"\bthromboxane{CUSTOM_SP}a2{CUSTOM_SP}receptor(\s*alpha|\s*beta)?|tp(alpha|beta)?{CUSTOM_SP}receptor\b"
+        ),
+        ["tbxa2r", "tpalpha", "tpbeta"],
+        False,
+    ),
+    (re.compile(rf"\bc5a{CUSTOM_SP}receptor\b"), ["c5ar1", "c5ar2"], True),
+    (re.compile(rf"\bebi2{CUSTOM_SP}receptor\b"), ["gpr183", "ebi2"], False),
+    (re.compile(rf"\bapj{CUSTOM_SP}receptor\b"), ["aplnr"], False),
+    (
+        re.compile(
+            rf"\bpar2{CUSTOM_SP}receptor|protease{CUSTOM_SP}activated{CUSTOM_SP}receptor{CUSTOM_SP}1\b"
+        ),
+        ["f2rl1", "f2r"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bpar1{CUSTOM_SP}receptor|protease{CUSTOM_SP}activated{CUSTOM_SP}receptor{CUSTOM_SP}1\b"
+        ),
+        ["f2r"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bendothelin{CUSTOM_SP}receptor{CUSTOM_SP}type{CUSTOM_SP}a|et-?a{CUSTOM_SP}receptor|eta{CUSTOM_SP}receptor\b"
+        ),
+        ["ednra"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bendothelin{CUSTOM_SP}b{CUSTOM_SP}receptor|et-?b{CUSTOM_SP}receptor|ednrb\b"
+        ),
+        ["ednrb"],
+        False,
+    ),
+    (
+        re.compile(rf"\bepha2(\s*-?{CUSTOM_SP}fc)?{CUSTOM_SP}receptor\b"),
+        ["epha2"],
+        False,
+    ),
+    (
+        re.compile(r"\bvegf(\s*receptor\s*2|\s*receptor\s*2\s*\(kdr\))|kdr\b"),
+        ["kdr"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\begf{CUSTOM_SP}receptor|epidermal{CUSTOM_SP}growth{CUSTOM_SP}factor{CUSTOM_SP}receptor\b"
+        ),
+        ["egfr"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bpdgf{CUSTOM_SP}receptor\b|platelet{CUSTOM_SP}derived{CUSTOM_SP}growth{CUSTOM_SP}factor{CUSTOM_SP}receptor{CUSTOM_SP}beta\b"
+        ),
+        ["pdgfrb"],
+        False,
+    ),
+    (re.compile(rf"\binsulin{CUSTOM_SP}receptor\b"), ["insr"], False),
+    (re.compile(rf"\bigf-?1{CUSTOM_SP}receptor\b"), ["igf1r"], False),
+    (re.compile(rf"\bdat{CUSTOM_SP}receptor\b"), ["slc6a3"], False),
+    (
+        re.compile(rf"\bcocaine{CUSTOM_SP}receptor\b"),
+        ["slc6a3", "sigmar1"],
+        True,
+    ),
+    (re.compile(rf"\bnet{CUSTOM_SP}receptor\b"), ["slc6a2"], False),
+    (
+        re.compile(rf"\b5htt{CUSTOM_SP}receptor|sert{CUSTOM_SP}receptor\b"),
+        ["slc6a4"],
+        False,
+    ),
+    (re.compile(rf"\bgat1{CUSTOM_SP}receptor\b"), ["slc6a1"], False),
+    (
+        re.compile(rf"\bherg{CUSTOM_SP}receptor|erg{CUSTOM_SP}receptor\b"),
+        ["kcnh2"],
+        False,
+    ),
+    (
+        re.compile(rf"\bgabac{CUSTOM_SP}rho(\s*-?\s*)1{CUSTOM_SP}receptor\b"),
+        ["gabrr1"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bgabaalpha2{CUSTOM_SP}receptor\b|alpha{CUSTOM_SP}5{CUSTOM_SP}gaba{CUSTOM_SP}-?{CUSTOM_SP}a{CUSTOM_SP}receptor\b"
+        ),
+        ["gabra2", "gabra5"],
+        True,
+    ),
+    (
+        re.compile(
+            rf"\bglycine{CUSTOM_SP}receptor{CUSTOM_SP}subunit{CUSTOM_SP}alpha{CUSTOM_SP}-?\s*1|glycine{CUSTOM_SP}receptor{CUSTOM_SP}alpha{CUSTOM_SP}1\b"
+        ),
+        ["glra1"],
+        False,
+    ),
+]
+
+# ---------------------------------------------------------------------------
+# Ion channel-specific candidate rules
+
+ION_DOT = r"\s*\.\s*"  # require a literal dot between digits
+ION_SP = r"\s*(?:-|\s|/)\s*"
+
+RULES_ION_CHANNELS: Sequence[CandidateRule] = [
+    # ===== Nav (SCN) sodium channels =====
+    (
+        re.compile(
+            rf"\b(?:na\s*v|nav)\s*1{ION_DOT}7\b|\bnav{ION_SP}1{ION_DOT}7(?:{ION_SP}(?:sodium|ion){ION_SP}channel)?\b"
+        ),
+        ["scn9a", "nav1.7"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(?:na\s*v|nav)\s*1{ION_DOT}8\b|\bvoltage{ION_SP}gated{ION_SP}na{ION_SP}channel{ION_SP}1{ION_DOT}8\b"
+        ),
+        ["scn10a", "nav1.8"],
+        False,
+    ),
+    (re.compile(rf"\b(?:na\s*v|nav)\s*1{ION_DOT}5\b"), ["scn5a", "nav1.5"], False),
+    (
+        re.compile(
+            rf"\b(?:na\s*v|nav)\s*1{ION_DOT}3\b|\bnav{ION_SP}1{ION_DOT}3{ION_SP}sodium{ION_SP}channel\b"
+        ),
+        ["scn3a", "nav1.3"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\b(?:na\s*v|nav)\s*1{ION_DOT}2\b|\bsodium{ION_SP}channel{ION_SP}type{ION_SP}ii?a\b"
+        ),
+        ["scn2a", "nav1.2"],
+        False,
+    ),
+    # ===== Cav (CACNA) calcium channels =====
+    (
+        re.compile(rf"\bcav{ION_SP}1{ION_DOT}2{ION_SP}channel\b"),
+        ["cacna1c", "cav1.2"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bl{ION_SP}type{ION_SP}(?:\[?\s*ca2\+\s*\]?{ION_SP})?calcium{ION_SP}channel(?:{ION_SP}receptor)?\b"
+        ),
+        ["cacna1c", "cacna1d"],
+        True,
+    ),
+    (
+        re.compile(
+            rf"\bcav{ION_SP}2{ION_DOT}2{ION_SP}channel\b|\bn{ION_SP}type{ION_SP}calcium{ION_SP}channels?\b"
+        ),
+        ["cacna1b", "cav2.2"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bcav{ION_SP}3{ION_DOT}1{ION_SP}channel\b|\balpha{ION_SP}-?1g{ION_SP}t{ION_SP}type{ION_SP}calcium{ION_SP}channel\b|\bcav{ION_SP}3{ION_DOT}1\b"
+        ),
+        ["cacna1g", "cav3.1"],
+        False,
+    ),
+    (
+        re.compile(
+            rf"\bcav{ION_SP}3{ION_DOT}2{ION_SP}channel\b|\balpha{ION_SP}-?1h{ION_SP}t{ION_SP}type{ION_SP}calcium{ION_SP}channel\b|\bcav{ION_SP}3{ION_DOT}2\b"
+        ),
+        ["cacna1h", "cav3.2"],
+        False,
+    ),
+    (
+        re.compile(rf"\bcav{ION_SP}3{ION_DOT}3{ION_SP}channel\b"),
+        ["cacna1i", "cav3.3"],
+        False,
+    ),
+    (
+        re.compile(rf"\bt{ION_SP}type{ION_SP}(?:\[?\s*ca2\+\s*\]?{ION_SP})?channel\b"),
+        ["cacna1g", "cacna1h", "cacna1i"],
+        True,
+    ),
+    (
+        re.compile(
+            rf"\balpha{ION_SP}-?1g{ION_SP}calcium{ION_SP}channel\b|\bt{ION_SP}type{ION_SP}calcium{ION_SP}channel{ION_SP}alpha1g\b"
+        ),
+        ["cacna1g"],
+        False,
+    ),
+    (re.compile(rf"\bcav{ION_SP}3{ION_DOT}2\b"), ["cacna1h", "cav3.2"], False),
+    (re.compile(rf"\bcav{ION_SP}3{ION_DOT}1\b"), ["cacna1g", "cav3.1"], False),
+    # ===== Auxiliary Ca2+ subunits =====
+    (
+        re.compile(
+            rf"\bcalcium{ION_SP}channel{ION_SP}alpha2delta\b|\balpha{ION_SP}-?2delta{ION_SP}calcium{ION_SP}channel\b|\balpha{ION_SP}-?2delta{ION_SP}containing{ION_SP}calcium{ION_SP}channel\b"
+        ),
+        ["cacna2d1", "cacna2d2", "cacna2d3", "cacna2d4"],
+        False,
+    ),
+    # ===== ERG / hERG (KCNH2) & IKs =====
+    (
+        re.compile(
+            rf"\bherg{ION_SP}channel\b|\berg{ION_SP}channel\b|\berg{ION_SP}potassium{ION_SP}channel\b|\bkv11{ION_DOT}1\b|\bikr{ION_SP}channel\b|\berg{ION_SP}k\+\s*channel\b"
+        ),
+        ["kcnh2", "kv11.1", "herg"],
+        False,
+    ),
+    (
+        re.compile(rf"\biks{ION_SP}potassium{ION_SP}channel\b"),
+        ["kcnq1", "kcne1"],
+        False,
+    ),
+    # ===== Kv family =====
+    (
+        re.compile(rf"\bkv1{ION_DOT}3(?:{ION_SP}ion)?{ION_SP}channel\b"),
+        ["kcna3", "kv1.3"],
+        False,
+    ),
+    (
+        re.compile(rf"\bkv1{ION_DOT}5(?:{ION_SP}ion)?{ION_SP}channel\b"),
+        ["kcna5", "kv1.5"],
+        False,
+    ),
+    # ===== Kir / ROMK =====
+    (
+        re.compile(rf"\bromk1?{ION_SP}channel\b"),
+        ["kcnj1", "romk"],
+        False,
+    ),
+    # ===== Anoctamin (ANO1 / TMEM16A) =====
+    (re.compile(rf"\bano1{ION_SP}channel\b"), ["tmem16a", "ano1"], False),
+    # ===== Exchangers =====
+    (
+        re.compile(
+            rf"\bna\+\s*{ION_SP}h\+\s*exchanger{ION_SP}1\b|\bsodium{ION_SP}\/?hydrogen{ION_SP}exchanger{ION_SP}1\b"
+        ),
+        ["slc9a1", "nhe1"],
+        False,
+    ),
+    (re.compile(rf"\bsodium{ION_SP}\/?hydrogen{ION_SP}exchanger\b"), ["slc9a1"], True),
+    # ===== Gardos channel (KCNN4) =====
+    (re.compile(rf"\bgardos{ION_SP}channel\b"), ["kcnn4", "kca3.1"], False),
+]
+
 
 def gen_candidates(clean_text: str) -> List[str]:
     """Generate GPCR gene-like candidates based on ``clean_text``.
@@ -366,16 +1393,25 @@ def gen_candidates(clean_text: str) -> List[str]:
 
     s = clean_text.lower()
     out: List[str] = []
-    for pat, val in list(RULES_GPCR) + list(RULES_GPCR_EXTRA):
+    soft_out: List[str] = []
+    rules: Sequence[CandidateRule] = [
+        *[(p, v, False) for p, v in list(RULES_GPCR) + list(RULES_GPCR_EXTRA)],
+        *RULES_CUSTOM,
+        *RULES_ION_CHANNELS,
+    ]
+    for pat, val, soft in rules:
         m = pat.search(s)
         if m:
             adds = val(m) if callable(val) else val
-            out.extend(adds)
+            if soft:
+                soft_out.extend(adds)
+            else:
+                out.extend(adds)
 
-    # dedupe preserving order
+    # dedupe preserving order with soft matches at the end
     seen: set[str] = set()
     res: List[str] = []
-    for x in out:
+    for x in out + soft_out:
         if x and x not in seen:
             seen.add(x)
             res.append(x)
@@ -407,7 +1443,8 @@ MULTI_SPACE_RE = re.compile(r"[\s\t]+")
 TYPO_QUOTES_RE = re.compile(r"[“”«»„]|’")
 LONG_DASH_RE = re.compile(r"[–—]")
 PAREN_RE = re.compile(r"\(([^(]*)\)|\[([^\]]*)\]|\{([^}]*)\)")
-TOKEN_SPLIT_RE = re.compile(r"[\s\-_/,:;\.]+")
+# Split on whitespace, punctuation, and dots/commas not between digits
+TOKEN_SPLIT_RE = re.compile(r"(?:[\s\-_/:;]|^,|,(?!\d)|(?<=\D),|(?<!\d)\.(?!\d))+")
 HYPHEN_SPACE_RE = re.compile(r"\s*-\s*")
 HYPHEN_TOKEN_RE = re.compile(r"\b[a-z0-9]+(?:-[a-z0-9]+)+\b")
 SHORT_TOKEN_RE = re.compile(r"^[a-z0-9]{1,3}$")
