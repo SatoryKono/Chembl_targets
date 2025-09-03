@@ -12,7 +12,7 @@ from typing import Dict, Tuple
 import csv
 import json
 
-import pandas as pd
+import pandas as pd  # type: ignore[import-untyped]
 
 # Default encodings and delimiters to try when reading CSV files.
 ENCODINGS: Tuple[str, ...] = ("utf-8-sig", "cp1251", "latin1")

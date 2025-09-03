@@ -8,6 +8,15 @@ import re
 import unicodedata
 from typing import Callable, Dict, List, Sequence, Tuple
 
+try:
+    from hgvs.exceptions import HGVSParseError  # type: ignore[import-not-found]
+    from hgvs.parser import Parser as _HgvsParser  # type: ignore[import-not-found]
+
+    _HGVS_PARSER: _HgvsParser | None = _HgvsParser()
+except Exception:  # pragma: no cover - optional dependency
+    _HGVS_PARSER = None
+    HGVSParseError = Exception
+
 logger = logging.getLogger(__name__)
 
 # Default dictionaries -----------------------------------------------------
@@ -419,11 +428,14 @@ MUTATION_PATTERNS: Sequence[re.Pattern[str]] = (
         re.IGNORECASE,
     ),
     re.compile(r"\b(?:[A-Z][0-9]+[A-Z])(?:/[A-Z][0-9]+[A-Z])+\b", re.IGNORECASE),
+    re.compile(r"\b[A-Z][0-9]+(?:del|ins|dup)[A-Z]*\b", re.IGNORECASE),
+    re.compile(r"\b[A-Z][0-9]+fs\*?\d*\b", re.IGNORECASE),
     re.compile(r"(?:Δ|delta)\s?[A-Z][0-9]+", re.IGNORECASE),
     re.compile(r"\b(mutant|variant|mut\.)\b", re.IGNORECASE),
 )
-
-MUTATION_WHITELIST = {
+#: Tokens resembling mutations but representing legitimate receptor or gene names.
+#: Extend this set via the ``mutation_whitelist`` parameter of ``normalize_target_name``.
+MUTATION_WHITELIST: set[str] = {
     "m2",
     "h3",
     "d2",
@@ -638,19 +650,30 @@ def remove_weak_words(tokens: Sequence[str]) -> Tuple[List[str], List[str]]:
     return result, dropped
 
 
-def find_mutations(text: str) -> List[str]:
+def find_mutations(text: str, whitelist: Sequence[str] | None = None) -> List[str]:
     """Extract mutation-like substrings from text.
 
     Parameters
     ----------
     text:
         Input string in its original form.
+    whitelist:
+        Additional mutation-like tokens to ignore during extraction.
 
     Returns
     -------
     List[str]
         Unique mutation substrings in order of appearance.
+
+    Notes
+    -----
+    If the optional :mod:`hgvs` package is available, its parser is used to
+    recognize HGVS-formatted variants beyond the built-in regex patterns.
     """
+
+    allowed = set(MUTATION_WHITELIST)
+    if whitelist:
+        allowed.update(w.lower() for w in whitelist)
 
     found: List[str] = []
     for pattern in MUTATION_PATTERNS:
@@ -661,13 +684,24 @@ def find_mutations(text: str) -> List[str]:
                     continue
             token = match.group(0)
             lower = token.lower()
-            if lower in MUTATION_WHITELIST:
+            if lower in allowed:
                 continue
             if any(lower in f.lower() for f in found):
                 continue
             found = [f for f in found if f.lower() not in lower]
             if token not in found:
                 found.append(token)
+    if _HGVS_PARSER is not None:
+        tokens = re.findall(r"\S+", text)
+        for tok in tokens:
+            lower = tok.lower()
+            if lower in allowed or any(lower == f.lower() for f in found):
+                continue
+            try:
+                _HGVS_PARSER.parse(tok)
+            except HGVSParseError:
+                continue
+            found.append(tok)
     return found
 
 
@@ -808,13 +842,24 @@ class NormalizationResult:
     rules_applied: List[str]
 
 
-def normalize_target_name(name: str) -> NormalizationResult:
+def normalize_target_name(
+    name: str,
+    *,
+    strip_mutations: bool = True,
+    mutation_whitelist: Sequence[str] | None = None,
+) -> NormalizationResult:
     """Normalize a single target name.
 
     Parameters
     ----------
     name:
         Raw target name.
+    strip_mutations:
+        Remove mutation-like tokens from the results. Set to ``False`` to
+        retain mutations in the output tokens.
+    mutation_whitelist:
+        Additional mutation-like tokens to preserve. Tokens are compared in
+        lowercase and extend :data:`MUTATION_WHITELIST`.
 
     Returns
     -------
@@ -822,8 +867,11 @@ def normalize_target_name(name: str) -> NormalizationResult:
         Structured normalization information.
     """
     raw = name
+    whitelist = set(MUTATION_WHITELIST)
+    if mutation_whitelist:
+        whitelist.update(t.lower() for t in mutation_whitelist)
     stage = sanitize_text(name)
-    mutations = find_mutations(stage)
+    mutations = find_mutations(stage, whitelist=list(whitelist))
     stage = normalize_unicode(stage)
     stage = replace_specials(stage)
     stage = replace_roman_numerals(stage)
@@ -847,22 +895,15 @@ def normalize_target_name(name: str) -> NormalizationResult:
     tokens_base_no_stop_orig = list(tokens_base_no_stop)
     tokens_base_alt_orig = list(tokens_base_alt)
 
-    tokens_no_stop = [
-        t for t in tokens_no_stop if t not in mutation_tokens or t in MUTATION_WHITELIST
-    ]
-    tokens_alt = [
-        t for t in tokens_alt if t not in mutation_tokens or t in MUTATION_WHITELIST
-    ]
-    tokens_base_no_stop = [
-        t
-        for t in tokens_base_no_stop
-        if t not in mutation_tokens or t in MUTATION_WHITELIST
-    ]
-    tokens_base_alt = [
-        t
-        for t in tokens_base_alt
-        if t not in mutation_tokens or t in MUTATION_WHITELIST
-    ]
+    if strip_mutations:
+        tokens_no_stop = [t for t in tokens_no_stop if t not in mutation_tokens or t in whitelist]
+        tokens_alt = [t for t in tokens_alt if t not in mutation_tokens or t in whitelist]
+        tokens_base_no_stop = [
+            t for t in tokens_base_no_stop if t not in mutation_tokens or t in whitelist
+        ]
+        tokens_base_alt = [
+            t for t in tokens_base_alt if t not in mutation_tokens or t in whitelist
+        ]
 
     clean_tokens_check = [
         t for t in tokens_no_stop if not re.fullmatch(r"[a-z]$|\d+$", t)
