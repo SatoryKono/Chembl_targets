@@ -34,6 +34,7 @@ GREEK_LETTERS: Dict[str, str] = {
     "κ": "kappa",
     "λ": "lambda",
     "μ": "mu",
+    "µ": "mu",  # micro sign
     "ν": "nu",
     "ξ": "xi",
     "ο": "omicron",
@@ -389,6 +390,16 @@ ROMAN_NUMERALS: Dict[str, str] = {
     "vii": "7",
     "viii": "8",
     "ix": "9",
+    "xi": "11",
+    "xii": "12",
+    "xiii": "13",
+    "xiv": "14",
+    "xv": "15",
+    "xvi": "16",
+    "xvii": "17",
+    "xviii": "18",
+    "xix": "19",
+    "xx": "20",
 }
 
 CONTROL_CHARS_RE = re.compile(r"[\u0000-\u001F\u007F]")
@@ -491,16 +502,18 @@ def replace_specials(
     if greek is None and superscripts is None:
         translation = _DEFAULT_SPECIALS_TABLE
     else:
-        translation = str.maketrans({**(greek or GREEK_LETTERS), **(superscripts or SUPERSCRIPTS)})
+        translation = str.maketrans(
+            {**(greek or GREEK_LETTERS), **(superscripts or SUPERSCRIPTS)}
+        )
     return text.translate(translation)
 
 
 def replace_roman_numerals(text: str) -> str:
     """Replace standalone Roman numerals with digits.
 
-    The mapping covers numerals from II to IX. Single-letter numerals such as
-    ``v`` or ``x`` are intentionally excluded to avoid altering valid gene
-    symbols. The input should already be lower-cased.
+    The mapping covers numerals from ``II`` to ``XX`` while excluding
+    single-letter numerals such as ``v`` or ``x`` to avoid altering valid
+    gene symbols. The input should already be lower-cased.
     """
 
     def repl(match: re.Match[str]) -> str:
@@ -847,6 +860,8 @@ def normalize_target_name(
     *,
     strip_mutations: bool = True,
     mutation_whitelist: Sequence[str] | None = None,
+    detect_mutations: bool = True,
+    taxon: int = 9606,
 ) -> NormalizationResult:
     """Normalize a single target name.
 
@@ -860,6 +875,10 @@ def normalize_target_name(
     mutation_whitelist:
         Additional mutation-like tokens to preserve. Tokens are compared in
         lowercase and extend :data:`MUTATION_WHITELIST`.
+    detect_mutations:
+        Skip mutation detection when ``False`` for faster processing.
+    taxon:
+        NCBI taxonomy identifier to store in :class:`NormalizationResult`.
 
     Returns
     -------
@@ -871,7 +890,9 @@ def normalize_target_name(
     if mutation_whitelist:
         whitelist.update(t.lower() for t in mutation_whitelist)
     stage = sanitize_text(name)
-    mutations = find_mutations(stage, whitelist=list(whitelist))
+    mutations: List[str] = []
+    if detect_mutations:
+        mutations = find_mutations(stage, whitelist=list(whitelist))
     stage = normalize_unicode(stage)
     stage = replace_specials(stage)
     stage = replace_roman_numerals(stage)
@@ -889,15 +910,19 @@ def normalize_target_name(
     tokens_no_stop = tokens_base_no_stop + [v for v, _ in substitutions]
     tokens_alt = tokens_base_alt + [v for v, _ in substitutions]
 
-    mutation_tokens = mutation_token_set(mutations)
+    mutation_tokens = mutation_token_set(mutations) if detect_mutations else set()
     tokens_no_stop_orig = list(tokens_no_stop)
     tokens_alt_orig = list(tokens_alt)
     tokens_base_no_stop_orig = list(tokens_base_no_stop)
     tokens_base_alt_orig = list(tokens_base_alt)
 
-    if strip_mutations:
-        tokens_no_stop = [t for t in tokens_no_stop if t not in mutation_tokens or t in whitelist]
-        tokens_alt = [t for t in tokens_alt if t not in mutation_tokens or t in whitelist]
+    if detect_mutations and strip_mutations:
+        tokens_no_stop = [
+            t for t in tokens_no_stop if t not in mutation_tokens or t in whitelist
+        ]
+        tokens_alt = [
+            t for t in tokens_alt if t not in mutation_tokens or t in whitelist
+        ]
         tokens_base_no_stop = [
             t for t in tokens_base_no_stop if t not in mutation_tokens or t in whitelist
         ]
@@ -909,7 +934,7 @@ def normalize_target_name(
         t for t in tokens_no_stop if not re.fullmatch(r"[a-z]$|\d+$", t)
     ]
     hints_mutations_only = False
-    if not clean_tokens_check:
+    if detect_mutations and not clean_tokens_check:
         tokens_no_stop = tokens_no_stop_orig
         tokens_alt = tokens_alt_orig
         tokens_base_no_stop = tokens_base_no_stop_orig
@@ -946,9 +971,9 @@ def normalize_target_name(
     hints: Dict[str, List[str] | bool] = {
         "parenthetical": parenthetical,
         "dropped": dropped,
-        "mutations": mutations,
+        "mutations": mutations if detect_mutations else [],
     }
-    if hints_mutations_only:
+    if detect_mutations and hints_mutations_only:
         hints["mutations_only"] = True
     return NormalizationResult(
         raw=raw,
@@ -956,7 +981,7 @@ def normalize_target_name(
         clean_text_alt=clean_text_alt,
         query_tokens=tokens_no_stop,
         gene_like_candidates=final_cleanup(candidates),
-        hint_taxon=9606,
+        hint_taxon=taxon,
         hints=hints,
         rules_applied=rules_applied,
     )

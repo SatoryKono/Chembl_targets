@@ -39,6 +39,14 @@ def test_replace_roman_numerals():
     assert replaced == "type 8 receptor"
 
 
+def test_replace_roman_numerals_extended():
+    text = "type xviii receptor"
+    replaced = replace_roman_numerals(text)
+    assert replaced == "type 18 receptor"
+    text2 = "type x receptor"
+    assert replace_roman_numerals(text2) == text2
+
+
 def test_read_target_names_missing_column(tmp_path: Path) -> None:
     csv_path = tmp_path / "x.csv"
     csv_path.write_text("foo\n1\n2\n")
@@ -123,7 +131,12 @@ def test_dataframe_hints_and_rules(tmp_path: Path) -> None:
     sample = Path("tests/data/sample.csv")
     df = read_target_names(sample)
     df_norm = normalize_dataframe(
-        df, "target_name", strip_mutations=True, mutation_whitelist=None
+        df,
+        "target_name",
+        strip_mutations=True,
+        mutation_whitelist=None,
+        detect_mutations=True,
+        taxon=9606,
     )
     assert isinstance(df_norm.loc[0, "hints"], dict)
     assert isinstance(df_norm.loc[0, "rules_applied"], list)
@@ -295,3 +308,14 @@ def test_extend_mutation_whitelist() -> None:
     res = normalize_target_name("BRAF V600E", mutation_whitelist=["v600e"])
     assert res.clean_text == "braf v600e"
     assert res.hints["mutations"] == []
+
+
+def test_no_mutation_detection() -> None:
+    res = normalize_target_name("BRAF V600E", detect_mutations=False)
+    assert "v600e" in res.query_tokens
+    assert res.hints["mutations"] == []
+
+
+def test_custom_taxon() -> None:
+    res = normalize_target_name("histamine receptor", taxon=10090)
+    assert res.hint_taxon == 10090
