@@ -12,7 +12,7 @@ from typing import Dict, Tuple
 import csv
 import json
 
-import pandas as pd
+import pandas as pd  # type: ignore[import-untyped]
 
 # Default encodings and delimiters to try when reading CSV files.
 ENCODINGS: Tuple[str, ...] = ("utf-8-sig", "cp1251", "latin1")
@@ -35,8 +35,18 @@ def detect_csv_format(path: Path) -> Tuple[str, str]:
     Raises
     ------
     ValueError
-        If the file format could not be detected.
+        If the file format could not be detected. The message includes a
+        snippet of the file to aid debugging and suggests using the
+        ``--column`` override for unusual headers.
     """
+    snippet = ""
+    try:
+        snippet = (
+            path.read_bytes()[:200].decode("utf-8", errors="replace").replace("\n", "\\n")
+        )
+    except Exception:
+        pass
+
     for enc in ENCODINGS:
         try:
             with path.open("r", encoding=enc) as fh:
@@ -46,7 +56,7 @@ def detect_csv_format(path: Path) -> Tuple[str, str]:
                     dialect = sniffer.sniff(sample, delimiters="".join(DELIMITERS))
                     return enc, dialect.delimiter
                 except csv.Error:
-                    first_line = sample.splitlines()[0]
+                    first_line = sample.splitlines()[0] if sample else ""
                     for delim in DELIMITERS:
                         if delim in first_line:
                             return enc, delim
@@ -54,7 +64,11 @@ def detect_csv_format(path: Path) -> Tuple[str, str]:
                     return enc, ","
         except Exception:
             continue
-    raise ValueError("Could not detect CSV encoding or delimiter")
+    raise ValueError(
+        "Could not detect CSV encoding or delimiter. "
+        f"Snippet: {snippet!r}. "
+        "Consider verifying the file or specifying the column with --column."
+    )
 
 
 def read_target_names(path: Path, column: str = "target_name") -> pd.DataFrame:
@@ -75,7 +89,12 @@ def read_target_names(path: Path, column: str = "target_name") -> pd.DataFrame:
     enc, delim = detect_csv_format(path)
     df = pd.read_csv(path, encoding=enc, sep=delim)
     if column not in df.columns:
-        raise KeyError(f"Column '{column}' not found in {path}")
+        sample = df.head().to_string(index=False)
+        cols = ", ".join(df.columns)
+        raise KeyError(
+            f"Column '{column}' not found in {path}. "
+            f"Available columns: {cols}. Sample:\n{sample}"
+        )
     return df
 
 

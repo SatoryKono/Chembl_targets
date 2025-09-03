@@ -14,7 +14,9 @@ from mylib.transforms import (
     apply_receptor_rules,
     normalize_target_name,
     replace_specials,
+    replace_roman_numerals,
     sanitize_text,
+    normalize_unicode,
 )
 
 
@@ -23,6 +25,29 @@ def test_sanitize_and_replace():
     clean = sanitize_text(text)
     clean = replace_specials(clean)
     assert clean == "beta receptor"
+
+
+def test_translate_micro_and_superscript():
+    text = normalize_unicode("µp² receptor")
+    clean = replace_specials(text)
+    assert clean == "mup2 receptor"
+
+
+def test_replace_roman_numerals():
+    text = "type viii receptor"
+    replaced = replace_roman_numerals(text)
+    assert replaced == "type 8 receptor"
+
+
+def test_read_target_names_missing_column(tmp_path: Path) -> None:
+    csv_path = tmp_path / "x.csv"
+    csv_path.write_text("foo\n1\n2\n")
+    with pytest.raises(KeyError) as exc:
+        read_target_names(csv_path, column="bar")
+    msg = str(exc.value)
+    assert "Available columns" in msg
+    assert "foo" in msg
+    assert "1" in msg
 
 
 def test_receptor_rules():
@@ -97,7 +122,9 @@ def test_parenthetical_complex_indices():
 def test_dataframe_hints_and_rules(tmp_path: Path) -> None:
     sample = Path("tests/data/sample.csv")
     df = read_target_names(sample)
-    df_norm = normalize_dataframe(df, "target_name")
+    df_norm = normalize_dataframe(
+        df, "target_name", strip_mutations=True, mutation_whitelist=None
+    )
     assert isinstance(df_norm.loc[0, "hints"], dict)
     assert isinstance(df_norm.loc[0, "rules_applied"], list)
     out = tmp_path / "out.csv"
@@ -250,3 +277,21 @@ def test_mutation_whitelist() -> None:
         "p.*100Y",
         "p.K45delinsST",
     }
+
+
+def test_additional_mutation_patterns() -> None:
+    res = normalize_target_name("CFTR F508del")
+    assert res.clean_text == "cftr"
+    assert res.hints["mutations"] == ["F508del"]
+
+
+def test_disable_mutation_stripping() -> None:
+    res = normalize_target_name("BRAF V600E", strip_mutations=False)
+    assert "v600e" in res.query_tokens
+    assert "braf v600e" in res.clean_text.split("|")
+
+
+def test_extend_mutation_whitelist() -> None:
+    res = normalize_target_name("BRAF V600E", mutation_whitelist=["v600e"])
+    assert res.clean_text == "braf v600e"
+    assert res.hints["mutations"] == []

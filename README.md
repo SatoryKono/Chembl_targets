@@ -45,10 +45,15 @@ preserved in `query_tokens`.
 Short indices enclosed in brackets such as `h3`, `p2x7`, or `5-ht1a` are
 kept; the bracketed content is stored under `hints.parenthetical`.
 
-Mutation-like substrings (`V600E`, `p.Gly12Asp`, `ΔF508`, etc.) are detected
-via regex rules, removed from the normalized tokens, and recorded under
-`hints.mutations`. If removing mutations leaves no core tokens, the original
-tokens are restored and `hints.mutations_only` is set to `true`.
+Mutation-like substrings (`V600E`, `p.Gly12Asp`, `ΔF508`, `F508del`, etc.) are
+detected via regex rules, with optional assistance from the `hgvs` parser when
+installed. By default these tokens are removed from the normalized output and
+recorded under `hints.mutations`. Use `--keep-mutations` to retain them. Tokens
+that resemble mutations but are valid receptor names are preserved through
+`MUTATION_WHITELIST`; additional tokens can be supplied with
+`--mutation-whitelist` (a text file with one token per line). If removing
+mutations leaves no core tokens, the original tokens are restored and
+`hints.mutations_only` is set to `true`.
 
 Gene-like candidates are inferred via regex rules:
 
