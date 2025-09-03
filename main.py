@@ -9,8 +9,8 @@ from typing import List
 
 import pandas as pd
 
-from mylib.io_utils import read_target_names, write_with_new_columns
-from mylib.transforms import NormalizationResult, normalize_target_name
+from library.io_utils import read_target_names, write_with_new_columns
+from library.transforms import NormalizationResult, normalize_target_name
 
 
 def configure_logging(level: str) -> None:

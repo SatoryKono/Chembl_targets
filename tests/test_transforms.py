@@ -9,8 +9,8 @@ from typing import List, cast
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from main import normalize_dataframe
-from mylib.io_utils import read_target_names, write_with_new_columns
-from mylib.transforms import (
+from library.io_utils import read_target_names, write_with_new_columns
+from library.transforms import (
     apply_receptor_rules,
     normalize_target_name,
     replace_specials,
