@@ -1443,8 +1443,8 @@ MULTI_SPACE_RE = re.compile(r"[\s\t]+")
 TYPO_QUOTES_RE = re.compile(r"[“”«»„]|’")
 LONG_DASH_RE = re.compile(r"[–—]")
 PAREN_RE = re.compile(r"\(([^(]*)\)|\[([^\]]*)\]|\{([^}]*)\)")
-# Split on whitespace, punctuation, and dots not between digits
-TOKEN_SPLIT_RE = re.compile(r"(?:[\s\-_/,:;]|(?<!\d)\.(?!\d))+")
+# Split on whitespace, punctuation, and dots/commas not between digits
+TOKEN_SPLIT_RE = re.compile(r"(?:[\s\-_/:;]|^,|,(?!\d)|(?<=\D),|(?<!\d)\.(?!\d))+")
 HYPHEN_SPACE_RE = re.compile(r"\s*-\s*")
 HYPHEN_TOKEN_RE = re.compile(r"\b[a-z0-9]+(?:-[a-z0-9]+)+\b")
 SHORT_TOKEN_RE = re.compile(r"^[a-z0-9]{1,3}$")

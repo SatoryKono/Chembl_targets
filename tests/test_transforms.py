@@ -110,6 +110,11 @@ def test_letter_digit_space_variants():
     assert result.clean_text.split("|") == ["h3", "h-3"]
 
 
+def test_comma_between_digits_preserved() -> None:
+    res = normalize_target_name("1,25-oh 2d3")
+    assert res.query_tokens[:3] == ["1,25", "oh", "2d3"]
+
+
 def test_parenthetical_complex_indices():
     res1 = normalize_target_name("p2x receptor (p2x7)")
     assert "p2x7" in res1.query_tokens
