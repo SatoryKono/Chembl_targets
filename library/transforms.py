@@ -62,6 +62,8 @@ SUPERSCRIPTS: Dict[str, str] = {
     "₀": "0",
 }
 
+_DEFAULT_SPECIALS_TABLE = str.maketrans({**GREEK_LETTERS, **SUPERSCRIPTS})
+
 STOP_WORDS: Sequence[str] = (
     "protein",
     "receptor",
@@ -370,7 +372,15 @@ def gen_candidates(clean_text: str) -> List[str]:
     return res
 
 
-ROMAN_NUMERALS: Dict[str, str] = {"ii": "2", "iii": "3", "iv": "4"}
+ROMAN_NUMERALS: Dict[str, str] = {
+    "ii": "2",
+    "iii": "3",
+    "iv": "4",
+    "vi": "6",
+    "vii": "7",
+    "viii": "8",
+    "ix": "9",
+}
 
 CONTROL_CHARS_RE = re.compile(r"[\u0000-\u001F\u007F]")
 MULTI_SPACE_RE = re.compile(r"[\s\t]+")
@@ -447,24 +457,47 @@ def replace_specials(
     greek: Dict[str, str] | None = None,
     superscripts: Dict[str, str] | None = None,
 ) -> str:
-    """Replace greek letters and superscripts using mappings."""
-    greek = greek or GREEK_LETTERS
-    superscripts = superscripts or SUPERSCRIPTS
-    for k, v in greek.items():
-        text = text.replace(k, v)
-    for k, v in superscripts.items():
-        text = text.replace(k, v)
-    return text
+    """Replace Greek letters and superscripts using translation tables.
+
+    Parameters
+    ----------
+    text:
+        Input string to process.
+    greek:
+        Optional mapping of Greek characters to ASCII strings. If ``None``,
+        :data:`GREEK_LETTERS` is used.
+    superscripts:
+        Optional mapping of superscript/subscript digits to ASCII digits. If
+        ``None``, :data:`SUPERSCRIPTS` is used.
+
+    Notes
+    -----
+    Characters are replaced using :meth:`str.translate` for efficiency. Unicode
+    normalization should be applied beforehand to collapse variants such as the
+    micro sign ``µ`` into ``μ``.
+    """
+    if greek is None and superscripts is None:
+        translation = _DEFAULT_SPECIALS_TABLE
+    else:
+        translation = str.maketrans({**(greek or GREEK_LETTERS), **(superscripts or SUPERSCRIPTS)})
+    return text.translate(translation)
 
 
 def replace_roman_numerals(text: str) -> str:
-    """Replace standalone Roman numerals with digits."""
+    """Replace standalone Roman numerals with digits.
+
+    The mapping covers numerals from II to IX. Single-letter numerals such as
+    ``v`` or ``x`` are intentionally excluded to avoid altering valid gene
+    symbols. The input should already be lower-cased.
+    """
 
     def repl(match: re.Match[str]) -> str:
         token = match.group(0)
         return ROMAN_NUMERALS[token]
 
-    pattern = re.compile(r"\b(ii|iii|iv)\b")
+    pattern = re.compile(
+        r"\b(" + "|".join(sorted(ROMAN_NUMERALS.keys(), key=len, reverse=True)) + r")\b"
+    )
     return pattern.sub(repl, text)
 
 

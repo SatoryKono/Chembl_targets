@@ -14,7 +14,9 @@ from library.transforms import (
     apply_receptor_rules,
     normalize_target_name,
     replace_specials,
+    replace_roman_numerals,
     sanitize_text,
+    normalize_unicode,
 )
 
 
@@ -23,6 +25,29 @@ def test_sanitize_and_replace():
     clean = sanitize_text(text)
     clean = replace_specials(clean)
     assert clean == "beta receptor"
+
+
+def test_translate_micro_and_superscript():
+    text = normalize_unicode("µp² receptor")
+    clean = replace_specials(text)
+    assert clean == "mup2 receptor"
+
+
+def test_replace_roman_numerals():
+    text = "type viii receptor"
+    replaced = replace_roman_numerals(text)
+    assert replaced == "type 8 receptor"
+
+
+def test_read_target_names_missing_column(tmp_path: Path) -> None:
+    csv_path = tmp_path / "x.csv"
+    csv_path.write_text("foo\n1\n2\n")
+    with pytest.raises(KeyError) as exc:
+        read_target_names(csv_path, column="bar")
+    msg = str(exc.value)
+    assert "Available columns" in msg
+    assert "foo" in msg
+    assert "1" in msg
 
 
 def test_receptor_rules():
