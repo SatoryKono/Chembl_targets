@@ -58,6 +58,20 @@ Gene-like candidates are inferred via regex rules:
 - `p2x3` → `p2rx3`
 - `5-ht1a` → `htr1a`
 - `gaba a alpha2` → `gabra2`
+- `trp v 1` → `trpv1`
+- `ampa glua2` → `gria2` (or `gria1`–`gria4` if subtype absent)
+- `nmda nr2b` → `grin2b` (family fallback to `grin1`, `grin2a`–`grin2d`, `grin3a`, `grin3b`)
+- `kainate gluk3` → `grik3` (family fallback to `grik1`–`grik5`)
+- `mglur5` / `metabotropic glutamate receptor` → `grm1`–`grm8`
+- `chemokine cc receptor 5` / `cxcr4` → corresponding `ccr`/`cxcr` genes
+- ligand aliases such as `sdf-1` → `cxcr4`, `il-8` → `cxcr1|cxcr2`,
+  `rantes` → `ccr1|ccr3|ccr5`, `fractalkine` → `cx3cr1`
+- `adenosine a2a receptor` → `a2a|adora2a`; `adenosine receptor` → `adora1`–`adora3`
+- `nociceptin receptor` / `orl1` / `nop` → `nop|orl1|oprl1`
+- `neuropeptide y1 receptor` → `y1|npy1r` (family `neuropeptide y receptor` → `npy1r`–`npy5r`)
+- `melanocortin 4 receptor` → `mc4r` (family `melanocortin receptor` → `mc1r`–`mc5r`)
+- `prostaglandin ep3 receptor` → `ep3|ptger3` (family `prostaglandin receptor` → `ptger1`–`ptger4`, `ptgdr`, `ptgdr2`, `ptgfr`, `ptgir`, `tbxa2r`)
+- Additional GPCR families such as calcitonin/CGRP/amylin (CALCR/CALCRL + RAMP1–3), parathyroid hormone (PTH1R/2R), neuropeptide S/FF/B/W, neuromedin U, kisspeptin (KISS1R/GPR54), ghrelin (GHSR), motilin (MLNR/GPR38), prolactin-releasing peptide (PRLHR/GPR10), melanin-concentrating hormone (MCHR1/2), fractalkine (CX3CR1) and XCR1, platelet-activating factor (PTAFR), formyl peptide receptors (FPR1–3/ALX), free fatty acid and hydroxycarboxylic acid receptors (FFAR1–4/GPR40/41/43/120/84 and HCAR1–3/GPR81/109A/B), trace amine-associated receptors (TAAR1–9), bile acid (GPBAR1/TGR5), urotensin II (UTS2R) and apelin (APLNR) receptors.
 
 ## Development
 
