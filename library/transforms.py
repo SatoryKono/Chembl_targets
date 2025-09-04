@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import logging
 import re
 import unicodedata
-from typing import Callable, Dict, List, Sequence, Tuple
+from typing import Callable, Dict, List, Sequence, Tuple, Union
 
 try:
     from hgvs.exceptions import HGVSParseError  # type: ignore[import-not-found]
@@ -353,7 +353,7 @@ RULES_GPCR_EXTRA: Sequence[
 
 CandidateRule = Tuple[
     re.Pattern[str],
-    Sequence[str] | Callable[[re.Match[str]], Sequence[str]],
+    Union[Sequence[str], Callable[[re.Match[str]], Sequence[str]]],
     bool,
 ]
 
