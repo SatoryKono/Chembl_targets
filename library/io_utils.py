@@ -8,7 +8,7 @@ loading external mapping dictionaries.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Sequence, Tuple
 import csv
 import json
 
@@ -42,7 +42,9 @@ def detect_csv_format(path: Path) -> Tuple[str, str]:
     snippet = ""
     try:
         snippet = (
-            path.read_bytes()[:200].decode("utf-8", errors="replace").replace("\n", "\\n")
+            path.read_bytes()[:200]
+            .decode("utf-8", errors="replace")
+            .replace("\n", "\\n")
         )
     except Exception:
         pass
@@ -71,7 +73,13 @@ def detect_csv_format(path: Path) -> Tuple[str, str]:
     )
 
 
-def read_target_names(path: Path, column: str = "target_name") -> pd.DataFrame:
+def read_target_names(
+    path: Path,
+    column: str = "target_name",
+    *,
+    encoding: str | None = None,
+    delimiter: str | None = None,
+) -> pd.DataFrame:
     """Read the CSV and return DataFrame with target names.
 
     Parameters
@@ -80,14 +88,21 @@ def read_target_names(path: Path, column: str = "target_name") -> pd.DataFrame:
         Path to the input CSV file.
     column:
         Name of the column containing target names.
+    encoding:
+        Optional file encoding. If ``None``, auto-detected.
+    delimiter:
+        Optional delimiter. If ``None``, auto-detected.
 
     Returns
     -------
     pandas.DataFrame
         DataFrame containing at least the raw column.
     """
-    enc, delim = detect_csv_format(path)
-    df = pd.read_csv(path, encoding=enc, sep=delim)
+    if encoding is None or delimiter is None:
+        det_enc, det_delim = detect_csv_format(path)
+        encoding = encoding or det_enc
+        delimiter = delimiter or det_delim
+    df = pd.read_csv(path, encoding=encoding, sep=delimiter)
     if column not in df.columns:
         sample = df.head().to_string(index=False)
         cols = ", ".join(df.columns)
@@ -99,7 +114,12 @@ def read_target_names(path: Path, column: str = "target_name") -> pd.DataFrame:
 
 
 def write_with_new_columns(
-    df: pd.DataFrame, path: Path, encoding: str = "utf-8"
+    df: pd.DataFrame,
+    path: Path,
+    *,
+    encoding: str = "utf-8",
+    delimiter: str = ",",
+    json_columns: Sequence[str] | None = ("hints", "rules_applied"),
 ) -> None:
     """Write DataFrame to CSV with given encoding.
 
@@ -111,12 +131,17 @@ def write_with_new_columns(
         Output path.
     encoding:
         Target encoding, default UTF-8.
+    delimiter:
+        Field delimiter for the output CSV.
+    json_columns:
+        Columns to serialize as JSON prior to writing.
     """
     df = df.copy()
-    for col in ("hints", "rules_applied"):
-        if col in df.columns:
-            df[col] = df[col].apply(lambda x: json.dumps(x, ensure_ascii=False))
-    df.to_csv(path, index=False, encoding=encoding)
+    if json_columns:
+        for col in json_columns:
+            if col in df.columns:
+                df[col] = df[col].apply(lambda x: json.dumps(x, ensure_ascii=False))
+    df.to_csv(path, index=False, encoding=encoding, sep=delimiter)
 
 
 def load_mapping(path: Path) -> Dict[str, str]:

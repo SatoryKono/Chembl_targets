@@ -13,13 +13,20 @@ pip install -r requirements.txt
 Optional quality tools:
 
 ```bash
-pip install black ruff mypy
+pip install black ruff mypy pandas-stubs
 ```
 
 ## Usage
 
 ```bash
 python main.py --input target_validation_new.csv --output normalized.csv
+# optional flags:
+#   --delimiter ';'          # CSV delimiter override
+#   --encoding utf-8         # File encoding override
+#   --keep-mutations         # retain mutation tokens
+#   --no-mutations           # disable mutation detection
+#   --taxon 10090            # set hint_taxon
+#   --json-columns hints,rules_applied  # columns to JSON-encode
 ```
 
 The output CSV includes columns:
@@ -41,6 +48,10 @@ Hyphenated tokens (e.g. `beta2-adrenergic`) and letter–digit pairs with spaces
 `query_tokens` (`beta2-adrenergic`/`beta2adrenergic`, `h-3`/`h3`) to aid
 downstream matching. Original split tokens (e.g. `h` and `3`) are also
 preserved in `query_tokens`.
+
+Standalone Roman numerals from `II` to `XX` are converted to digits while
+single-letter numerals such as `V` or `X` are left untouched to avoid changing
+valid gene symbols.
 
 Short indices enclosed in brackets such as `h3`, `p2x7`, or `5-ht1a` are
 kept; the bracketed content is stored under `hints.parenthetical`.
