@@ -12,6 +12,7 @@ from main import normalize_dataframe
 from library.io_utils import read_target_names, write_with_new_columns
 from library.transforms import (
     apply_receptor_rules,
+    classify_token,
     normalize_target_name,
     replace_specials,
     replace_roman_numerals,
@@ -45,6 +46,15 @@ def test_replace_roman_numerals_extended():
     assert replaced == "type 18 receptor"
     text2 = "type x receptor"
     assert replace_roman_numerals(text2) == text2
+
+
+def test_classify_token_cases() -> None:
+    assert classify_token("A123V") == "MISSENSE_1"
+    assert classify_token("A123A") == "NONE"
+    assert classify_token("p.Ala123Val") == "HGVS_P_MISSENSE_3"
+    assert classify_token("Arg97fs*5") == "INDEL_LIKE"
+    assert classify_token("install") == "NONE"
+    assert classify_token("h3r") == "COMMON_ALIAS"
 
 
 def test_read_target_names_missing_column(tmp_path: Path) -> None:

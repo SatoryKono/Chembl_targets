@@ -1504,6 +1504,142 @@ MUTATION_WHITELIST: set[str] = {
     "beta2",
 }
 
+# Amino acid whitelists ----------------------------------------------------
+AA1_WHITELIST: Tuple[str, ...] = (
+    "A",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "K",
+    "L",
+    "M",
+    "N",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "V",
+    "W",
+    "Y",
+)
+
+AA3_WHITELIST: Tuple[str, ...] = (
+    "Ala",
+    "Arg",
+    "Asn",
+    "Asp",
+    "Cys",
+    "Gln",
+    "Glu",
+    "Gly",
+    "His",
+    "Ile",
+    "Leu",
+    "Lys",
+    "Met",
+    "Phe",
+    "Pro",
+    "Ser",
+    "Thr",
+    "Trp",
+    "Tyr",
+    "Val",
+)
+
+
+def compile_whitelists(include_nonstandard: bool = False) -> tuple[str, str]:
+    """Compile regex fragments for amino acid whitelists.
+
+    Parameters
+    ----------
+    include_nonstandard:
+        Include selenocysteine (Sec/U) and pyrrolysine (Pyl/O) when ``True``.
+
+    Returns
+    -------
+    tuple[str, str]
+        Regex fragments for one-letter and three-letter codes.
+    """
+
+    aa1 = AA1_WHITELIST + ("U", "O") if include_nonstandard else AA1_WHITELIST
+    aa3 = AA3_WHITELIST + ("Sec", "Pyl") if include_nonstandard else AA3_WHITELIST
+    aa1_pattern = f"[{''.join(aa1)}]"
+    aa3_pattern = "(?:" + "|".join(aa3) + ")"
+    return aa1_pattern, aa3_pattern
+
+
+AA1_PATTERN, AA3_PATTERN = compile_whitelists()
+
+
+# Missense and alias classification patterns --------------------------------
+MISSENSE_1_NO_P = re.compile(
+    rf"\b({AA1_PATTERN})(\d+)({AA1_PATTERN})\b", re.IGNORECASE
+)
+MISSENSE_3_NO_P = re.compile(
+    rf"\b({AA3_PATTERN})(\d+)({AA3_PATTERN})\b", re.IGNORECASE
+)
+HGVS_P_MISSENSE_1 = re.compile(
+    rf"\bp\.({AA1_PATTERN})(\d+)({AA1_PATTERN})\b", re.IGNORECASE
+)
+HGVS_P_MISSENSE_3 = re.compile(
+    rf"\bp\.({AA3_PATTERN})(\d+)({AA3_PATTERN})\b", re.IGNORECASE
+)
+
+# Common receptor aliases resembling mutations
+COMMON_ALIAS_RE = re.compile(r"(?i)\b(?:h\d{1,2}r|a\d{1,2}[ab]|c\d{1,2}a)\b")
+
+# Indel detection patterns
+HAS_INDEL_MARKER = re.compile(r"(?i)(?:del|ins|dup|delins|fs)")
+INDEL_CONTEXT = re.compile(r"(?i)\d+(?:[_-]?\d+)?(?:del|ins|dup|delins|fs)")
+
+
+def is_indel_like(s: str) -> bool:
+    """Return ``True`` if the string resembles an indel or frameshift."""
+
+    return bool(HAS_INDEL_MARKER.search(s) and INDEL_CONTEXT.search(s))
+
+
+def classify_token(s: str) -> str:
+    """Classify mutation-like token.
+
+    Parameters
+    ----------
+    s:
+        Token to classify.
+
+    Returns
+    -------
+    str
+        ``MISSENSE_1``, ``MISSENSE_3``, ``HGVS_P_MISSENSE_1``,
+        ``HGVS_P_MISSENSE_3``, ``INDEL_LIKE``, ``COMMON_ALIAS`` or ``NONE``.
+    """
+
+    token = s.strip()
+    if not token:
+        return "NONE"
+    if COMMON_ALIAS_RE.fullmatch(token):
+        return "COMMON_ALIAS"
+    if is_indel_like(token):
+        return "INDEL_LIKE"
+    m = HGVS_P_MISSENSE_1.fullmatch(token)
+    if m and m.group(1).upper() != m.group(3).upper():
+        return "HGVS_P_MISSENSE_1"
+    m = HGVS_P_MISSENSE_3.fullmatch(token)
+    if m and m.group(1).upper() != m.group(3).upper():
+        return "HGVS_P_MISSENSE_3"
+    m = MISSENSE_1_NO_P.fullmatch(token)
+    if m and m.group(1).upper() != m.group(3).upper():
+        return "MISSENSE_1"
+    m = MISSENSE_3_NO_P.fullmatch(token)
+    if m and m.group(1).upper() != m.group(3).upper():
+        return "MISSENSE_3"
+    return "NONE"
+
 
 def sanitize_text(text: str) -> str:
     """Remove control characters and normalize whitespace."""
@@ -1739,11 +1875,17 @@ def find_mutations(text: str, whitelist: Sequence[str] | None = None) -> List[st
     found: List[str] = []
     for pattern in MUTATION_PATTERNS:
         for match in pattern.finditer(text):
-            # Skip letter-digit-letter where the letters are identical (e.g., A123A)
-            if pattern is LETTER_DIGIT_LETTER_RE:
-                if match.group(1).upper() == match.group(3).upper():
-                    continue
             token = match.group(0)
+            cls = classify_token(token)
+            if cls == "COMMON_ALIAS":
+                continue
+            if cls == "NONE" and (
+                MISSENSE_1_NO_P.fullmatch(token)
+                or MISSENSE_3_NO_P.fullmatch(token)
+                or HGVS_P_MISSENSE_1.fullmatch(token)
+                or HGVS_P_MISSENSE_3.fullmatch(token)
+            ):
+                continue
             lower = token.lower()
             if lower in allowed:
                 continue
@@ -1953,8 +2095,10 @@ def normalize_target_name(
         if domain.upper() not in {d.upper() for d in domains}:
             domains.append(domain)
     mutations: List[str] = []
+    mutation_classes: List[str] = []
     if detect_mutations:
         mutations = find_mutations(stage, whitelist=list(whitelist))
+        mutation_classes = [classify_token(m) for m in mutations]
     stage = normalize_unicode(stage)
     stage = replace_specials(stage)
     stage = replace_roman_numerals(stage)
@@ -2034,6 +2178,7 @@ def normalize_target_name(
         "parenthetical": parenthetical,
         "dropped": dropped,
         "mutations": mutations if detect_mutations else [],
+        "mutation_classes": mutation_classes if detect_mutations else [],
     }
     if detect_mutations and hints_mutations_only:
         hints["mutations_only"] = True
@@ -2048,3 +2193,20 @@ def normalize_target_name(
         rules_applied=rules_applied,
         domains=domains,
     )
+
+
+if __name__ == "__main__":  # pragma: no cover - simple usage tests
+    examples = {
+        "A123V": "MISSENSE_1",
+        "A123A": "NONE",
+        "p.Ala123Val": "HGVS_P_MISSENSE_3",
+        "Arg97fs*5": "INDEL_LIKE",
+        "install": "NONE",
+        "h3r": "COMMON_ALIAS",
+    }
+    for tok, expected in examples.items():
+        result = classify_token(tok)
+        assert (
+            result == expected
+        ), f"{tok} classified as {result}, expected {expected}"
+    print("Manual classification tests passed")
