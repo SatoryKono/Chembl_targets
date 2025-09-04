@@ -113,6 +113,50 @@ def read_target_names(
     return df
 
 
+def read_uniprot_mapping(
+    path: Path,
+    id_column: str,
+    name_column: str,
+    *,
+    encoding: str | None = None,
+    delimiter: str | None = None,
+) -> pd.DataFrame:
+    """Read CSV containing UniProt identifiers and protein names.
+
+    Parameters
+    ----------
+    path:
+        Path to the input CSV file.
+    id_column:
+        Column containing UniProt accession IDs.
+    name_column:
+        Column containing protein or gene names to validate.
+    encoding:
+        Optional file encoding. If ``None``, auto-detected.
+    delimiter:
+        Optional delimiter. If ``None``, auto-detected.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with at least the two specified columns.
+    """
+    if encoding is None or delimiter is None:
+        det_enc, det_delim = detect_csv_format(path)
+        encoding = encoding or det_enc
+        delimiter = delimiter or det_delim
+    df = pd.read_csv(path, encoding=encoding, sep=delimiter)
+    for col in (id_column, name_column):
+        if col not in df.columns:
+            sample = df.head().to_string(index=False)
+            cols = ", ".join(df.columns)
+            raise KeyError(
+                f"Column '{col}' not found in {path}. "
+                f"Available columns: {cols}. Sample:\n{sample}"
+            )
+    return df[[id_column, name_column]].copy()
+
+
 def write_with_new_columns(
     df: pd.DataFrame,
     path: Path,
