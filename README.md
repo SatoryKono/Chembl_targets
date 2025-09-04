@@ -29,6 +29,18 @@ python main.py --input target_validation_new.csv --output normalized.csv
 #   --json-columns hints,rules_applied  # columns to JSON-encode
 ```
 
+### UniProt mapping validation
+
+Supply the UniProt accession column to ``main.py`` to validate mappings:
+
+```bash
+python main.py --input target_validation_out.csv --output validated.csv \
+    --column target_name --id-column target_uniprot_id
+```
+
+Adds a boolean `uniprot_match` column indicating whether the supplied name
+matches the UniProt record for each accession.
+
 The output CSV includes columns:
 
 - `clean_text` – normalized name without stop words
