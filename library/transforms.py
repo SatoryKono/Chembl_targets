@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
 import re
 import unicodedata
+from dataclasses import dataclass
 from typing import Callable, Dict, List, Sequence, Tuple, Union
 
 try:
@@ -1377,20 +1377,19 @@ RULES_ION_CHANNELS: Sequence[CandidateRule] = [
 
 
 def gen_candidates(clean_text: str) -> List[str]:
-    """Generate GPCR gene-like candidates based on ``clean_text``.
+    """Generate GPCR gene-like candidates from text.
 
-    Parameters
-    ----------
-    clean_text:
-        Normalized text (ideally with stop words) used for pattern matching.
+    Uses pattern matching on the cleaned text to infer candidate gene symbols,
+    drawing from a comprehensive set of rules for GPCRs, ion channels, and
+    other protein families.
 
-    Returns
-    -------
-    list[str]
-        Candidate gene symbols inferred from GPCR-specific rules. Duplicates
-        are removed while preserving the order of first occurrence.
+    Args:
+        clean_text: Normalized text, ideally with stop words, for matching.
+
+    Returns:
+        A list of candidate gene symbols, with duplicates removed while
+        preserving the order of the first appearance.
     """
-
     s = clean_text.lower()
     out: List[str] = []
     soft_out: List[str] = []
@@ -1408,7 +1407,7 @@ def gen_candidates(clean_text: str) -> List[str]:
             else:
                 out.extend(adds)
 
-    # dedupe preserving order with soft matches at the end
+    # Deduplicate while preserving order, with soft matches at the end
     seen: set[str] = set()
     res: List[str] = []
     for x in out + soft_out:
@@ -1497,7 +1496,14 @@ MUTATION_WHITELIST: set[str] = {
 
 
 def sanitize_text(text: str) -> str:
-    """Remove control characters and normalize whitespace."""
+    """Remove control characters, leading/trailing whitespace, and normalize spaces.
+
+    Args:
+        text: The input string to sanitize.
+
+    Returns:
+        The sanitized string.
+    """
     text = CONTROL_CHARS_RE.sub("", text)
     text = text.replace("\ufeff", "").replace("\xa0", " ")
     text = MULTI_SPACE_RE.sub(" ", text)
@@ -1505,7 +1511,14 @@ def sanitize_text(text: str) -> str:
 
 
 def normalize_unicode(text: str) -> str:
-    """Apply Unicode NFKC normalization and lowercase."""
+    """Apply Unicode NFKC normalization, lowercase, and standardize punctuation.
+
+    Args:
+        text: The input string to normalize.
+
+    Returns:
+        The normalized string.
+    """
     text = unicodedata.normalize("NFKC", text)
     text = text.lower()
     text = TYPO_QUOTES_RE.sub("'", text)
@@ -1520,22 +1533,20 @@ def replace_specials(
 ) -> str:
     """Replace Greek letters and superscripts using translation tables.
 
-    Parameters
-    ----------
-    text:
-        Input string to process.
-    greek:
-        Optional mapping of Greek characters to ASCII strings. If ``None``,
-        :data:`GREEK_LETTERS` is used.
-    superscripts:
-        Optional mapping of superscript/subscript digits to ASCII digits. If
-        ``None``, :data:`SUPERSCRIPTS` is used.
+    Args:
+        text: The input string to process.
+        greek: Optional mapping of Greek characters to ASCII strings. If None,
+            the default `GREEK_LETTERS` mapping is used.
+        superscripts: Optional mapping of superscript/subscript digits to ASCII.
+            If None, the default `SUPERSCRIPTS` mapping is used.
 
-    Notes
-    -----
-    Characters are replaced using :meth:`str.translate` for efficiency. Unicode
-    normalization should be applied beforehand to collapse variants such as the
-    micro sign ``µ`` into ``μ``.
+    Returns:
+        The processed string with special characters replaced.
+
+    Note:
+        This function uses `str.translate` for efficiency. It's recommended to
+        apply Unicode normalization before this function to handle variants
+        like the micro sign 'µ'.
     """
     if greek is None and superscripts is None:
         translation = _DEFAULT_SPECIALS_TABLE
@@ -1549,9 +1560,15 @@ def replace_specials(
 def replace_roman_numerals(text: str) -> str:
     """Replace standalone Roman numerals with digits.
 
-    The mapping covers numerals from ``II`` to ``XX`` while excluding
-    single-letter numerals such as ``v`` or ``x`` to avoid altering valid
-    gene symbols. The input should already be lower-cased.
+    This function converts Roman numerals from 'II' to 'XX' into their
+    digit counterparts. Single-letter numerals like 'V' or 'X' are
+    ignored to prevent altering valid gene symbols.
+
+    Args:
+        text: The input string, expected to be in lowercase.
+
+    Returns:
+        The string with Roman numerals replaced.
     """
 
     def repl(match: re.Match[str]) -> str:
@@ -1565,20 +1582,21 @@ def replace_roman_numerals(text: str) -> str:
 
 
 def extract_parenthetical(text: str) -> Tuple[str, List[str], List[str]]:
-    """Extract bracketed text into hints and retain certain short tokens.
+    """Extract bracketed text, sorting content into hints or tokens to keep.
 
-    Parameters
-    ----------
-    text:
-        Input string with possible parenthetical segments.
+    Content from parentheses, brackets, or braces is extracted. Short
+    alphanumeric tokens or indexed tokens inside are retained in the main
+    text, while the rest is moved to hints.
 
-    Returns
-    -------
-    Tuple[str, List[str], List[str]]
-        The text with brackets removed, list of extracted strings for hints,
-        and tokens that should remain in the main text.
+    Args:
+        text: The input string with potential parenthetical segments.
+
+    Returns:
+        A tuple containing:
+        - The text with brackets and their content removed.
+        - A list of extracted strings for hints.
+        - A list of tokens to be retained in the main text.
     """
-
     hints: List[str] = []
     keep_tokens: List[str] = []
 
@@ -1598,27 +1616,32 @@ def extract_parenthetical(text: str) -> Tuple[str, List[str], List[str]]:
 
 
 def pretoken_cleanup(text: str) -> str:
-    """Normalize spaces around hyphens and decimal separators before splitting."""
+    """Normalize spaces around hyphens and decimal separators before tokenization.
+
+    Args:
+        text: The input string.
+
+    Returns:
+        The cleaned string.
+    """
     text = HYPHEN_SPACE_RE.sub("-", text)
     text = DECIMAL_SPACE_RE.sub(r"\1", text)
     return text
 
 
 def generate_letter_digit_variants(tokens: Sequence[str]) -> List[Tuple[str, str]]:
-    """Create joined variants for adjacent letter-digit tokens.
+    """Create joined and hyphenated variants for adjacent letter-digit tokens.
 
-    Parameters
-    ----------
-    tokens:
-        Tokens obtained after initial splitting.
+    For a sequence like `['h', '3']`, this function generates `('h3', 'h 3')`
+    and `('h-3', 'h 3')`.
 
-    Returns
-    -------
-    List[Tuple[str, str]]
-        Pairs of (variant, base_pattern) where ``base_pattern`` is the
-        space-separated form in the original text.
+    Args:
+        tokens: A sequence of tokens from the initial split.
+
+    Returns:
+        A list of tuples, each containing a generated variant and its
+        space-separated base pattern.
     """
-
     variants: List[Tuple[str, str]] = []
     for i in range(len(tokens) - 1):
         left, right = tokens[i], tokens[i + 1]
@@ -1630,12 +1653,17 @@ def generate_letter_digit_variants(tokens: Sequence[str]) -> List[Tuple[str, str
 
 
 def detect_hyphen_variants(text: str) -> List[Tuple[str, str]]:
-    """Return hyphenated tokens and their space-separated base pattern.
+    """Find hyphenated tokens and generate their space-separated and concatenated forms.
 
-    Each result is a pair of (variant, base_pattern). Variants include the
-    original hyphenated token and its concatenated counterpart.
+    For a token like 'beta-2', this function returns `('beta-2', 'beta 2')`
+    and `('beta2', 'beta 2')`.
+
+    Args:
+        text: The input string to search for hyphenated tokens.
+
+    Returns:
+        A list of tuples, each with a variant and its base pattern.
     """
-
     variants: List[Tuple[str, str]] = []
     for token in HYPHEN_TOKEN_RE.findall(text):
         base = token.replace("-", " ")
@@ -1649,24 +1677,16 @@ def build_variant_strings(
     substitutions: Sequence[Tuple[str, str]],
     extra: Sequence[str] | None = None,
 ) -> List[str]:
-    """Generate variant strings from a base text and substitution patterns.
+    """Generate all possible string variants from a base text and substitution patterns.
 
-    Parameters
-    ----------
-    base:
-        Base string joined from primary tokens.
-    substitutions:
-        Sequence of ``(variant, base_pattern)`` tuples used to replace parts of
-        the base string.
-    extra:
-        Additional standalone tokens to include as separate variants.
+    Args:
+        base: The base string, typically joined from primary tokens.
+        substitutions: A sequence of `(variant, base_pattern)` tuples.
+        extra: Additional standalone tokens to include as variants.
 
-    Returns
-    -------
-    List[str]
-        Unique variant strings with empty values removed.
+    Returns:
+        A list of unique, non-empty variant strings.
     """
-
     variants: List[str] = []
     base = base.strip()
     if base and not LETTER_DIGIT_SPLIT_RE.search(base):
@@ -1686,12 +1706,27 @@ def build_variant_strings(
 
 
 def tokenize(text: str) -> List[str]:
-    """Split text into tokens using configured delimiters."""
+    """Split text into tokens based on a comprehensive set of delimiters.
+
+    Args:
+        text: The input string to tokenize.
+
+    Returns:
+        A list of tokens.
+    """
     return [t for t in TOKEN_SPLIT_RE.split(text) if t]
 
 
 def remove_weak_words(tokens: Sequence[str]) -> Tuple[List[str], List[str]]:
-    """Remove weak/stop words from token list."""
+    """Separate weak/stop words from a list of tokens.
+
+    Args:
+        tokens: The input sequence of tokens.
+
+    Returns:
+        A tuple containing two lists: the first with the remaining tokens,
+        and the second with the words that were dropped.
+    """
     dropped: List[str] = []
     result: List[str] = []
     for tok in tokens:
@@ -1703,26 +1738,19 @@ def remove_weak_words(tokens: Sequence[str]) -> Tuple[List[str], List[str]]:
 
 
 def find_mutations(text: str, whitelist: Sequence[str] | None = None) -> List[str]:
-    """Extract mutation-like substrings from text.
+    """Extract mutation-like substrings from text using regex and an HGVS parser.
 
-    Parameters
-    ----------
-    text:
-        Input string in its original form.
-    whitelist:
-        Additional mutation-like tokens to ignore during extraction.
+    Args:
+        text: The original input string.
+        whitelist: A sequence of mutation-like tokens to ignore.
 
-    Returns
-    -------
-    List[str]
-        Unique mutation substrings in order of appearance.
+    Returns:
+        A list of unique mutation substrings found, in order of appearance.
 
-    Notes
-    -----
-    If the optional :mod:`hgvs` package is available, its parser is used to
-    recognize HGVS-formatted variants beyond the built-in regex patterns.
+    Note:
+        If the `hgvs` package is installed, its parser is used to identify
+        HGVS-formatted variants in addition to the built-in regex patterns.
     """
-
     allowed = set(MUTATION_WHITELIST)
     if whitelist:
         allowed.update(w.lower() for w in whitelist)
@@ -1758,19 +1786,14 @@ def find_mutations(text: str, whitelist: Sequence[str] | None = None) -> List[st
 
 
 def mutation_token_set(mutations: Sequence[str]) -> set[str]:
-    """Normalize and tokenize mutation strings for removal.
+    """Normalize and tokenize mutation strings for easy removal.
 
-    Parameters
-    ----------
-    mutations:
-        Mutation substrings captured from the raw text.
+    Args:
+        mutations: A sequence of mutation substrings from the raw text.
 
-    Returns
-    -------
-    set[str]
-        Lowercase tokens representing mutations to exclude from results.
+    Returns:
+        A set of lowercase tokens representing the mutations.
     """
-
     tokens: set[str] = set()
     for mut in mutations:
         norm = normalize_unicode(mut)
@@ -1783,11 +1806,14 @@ def mutation_token_set(mutations: Sequence[str]) -> set[str]:
 
 
 def apply_receptor_rules(text: str) -> Tuple[str, List[str], List[str]]:
-    """Apply receptor family normalization rules.
+    """Apply receptor family normalization rules to the text.
 
-    Returns
-    -------
-    Tuple of (new_text, gene_like_candidates, rules_applied)
+    Args:
+        text: The input string to process.
+
+    Returns:
+        A tuple containing the modified text, a list of gene-like
+        candidates, and a list of the rules that were applied.
     """
     candidates: List[str] = []
     applied: List[str] = []
@@ -1802,17 +1828,12 @@ def apply_receptor_rules(text: str) -> Tuple[str, List[str], List[str]]:
 def generate_regex_candidates(text: str) -> List[str]:
     """Generate gene-like candidates from regex and alias rules.
 
-    Parameters
-    ----------
-    text:
-        Concatenated normalized tokens.
+    Args:
+        text: A string of concatenated normalized tokens.
 
-    Returns
-    -------
-    List[str]
-        Candidate gene symbols inferred from the text.
+    Returns:
+        A list of candidate gene symbols inferred from the text.
     """
-
     candidates: List[str] = []
     tokens = text.split()
 
@@ -1872,7 +1893,14 @@ def generate_regex_candidates(text: str) -> List[str]:
 
 
 def final_cleanup(tokens: Sequence[str]) -> List[str]:
-    """Remove duplicate tokens while preserving order."""
+    """Remove duplicate tokens from a sequence while preserving order.
+
+    Args:
+        tokens: The input sequence of tokens.
+
+    Returns:
+        A new list of unique tokens.
+    """
     seen = set()
     result: List[str] = []
     for tok in tokens:
@@ -1884,6 +1912,22 @@ def final_cleanup(tokens: Sequence[str]) -> List[str]:
 
 @dataclass
 class NormalizationResult:
+    """A container for the results of the target name normalization process.
+
+    Attributes:
+        raw: The original, unprocessed target name.
+        clean_text: The primary normalized name, with stop words removed and
+            variants joined by '|'.
+        clean_text_alt: An alternative version of the normalized name that
+            retains stop words.
+        query_tokens: A list of tokens for database querying.
+        gene_like_candidates: A list of potential gene symbols inferred from the name.
+        hint_taxon: The NCBI taxonomy identifier.
+        hints: A dictionary of metadata, including extracted parenthetical
+            text, dropped words, and detected mutations.
+        rules_applied: A list of regex rules that were triggered during normalization.
+    """
+
     raw: str
     clean_text: str
     clean_text_alt: str
@@ -1902,27 +1946,22 @@ def normalize_target_name(
     detect_mutations: bool = True,
     taxon: int = 9606,
 ) -> NormalizationResult:
-    """Normalize a single target name.
+    """Normalize a single target name through a series of transformations.
 
-    Parameters
-    ----------
-    name:
-        Raw target name.
-    strip_mutations:
-        Remove mutation-like tokens from the results. Set to ``False`` to
-        retain mutations in the output tokens.
-    mutation_whitelist:
-        Additional mutation-like tokens to preserve. Tokens are compared in
-        lowercase and extend :data:`MUTATION_WHITELIST`.
-    detect_mutations:
-        Skip mutation detection when ``False`` for faster processing.
-    taxon:
-        NCBI taxonomy identifier to store in :class:`NormalizationResult`.
+    This function orchestrates the entire normalization pipeline, from basic
+    sanitization to advanced gene candidate inference.
 
-    Returns
-    -------
-    NormalizationResult
-        Structured normalization information.
+    Args:
+        name: The raw target name string.
+        strip_mutations: If True, identified mutation-like tokens are removed
+            from the final output.
+        mutation_whitelist: A sequence of tokens to exempt from mutation stripping.
+        detect_mutations: If False, the mutation detection step is skipped to
+            improve performance.
+        taxon: The NCBI taxonomy ID to associate with the result.
+
+    Returns:
+        A `NormalizationResult` object containing the structured output.
     """
     raw = name
     whitelist = set(MUTATION_WHITELIST)

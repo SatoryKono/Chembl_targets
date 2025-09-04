@@ -1,101 +1,129 @@
 # Target Name Normalization
 
-Utilities for heavy but non-destructive normalization of protein target names.
+A Python-based utility for performing heavy but non-destructive normalization of protein target names. This tool is designed to clean, standardize, and enrich target names to aid in downstream matching, database lookups, and data integration.
+
+## Purpose
+
+The primary goal of this repository is to provide a robust and configurable pipeline for normalizing protein target names, which are often inconsistent and messy in biological datasets. The normalization process includes:
+
+-   **Sanitization**: Removing control characters and standardizing whitespace.
+-   **Unicode Normalization**: Converting text to a standard Unicode form (NFKC) and handling special characters like Greek letters and superscripts.
+-   **Tokenization**: Splitting names into meaningful tokens.
+-   **Variant Generation**: Creating alternative forms for hyphenated tokens and adjacent letter-digit pairs to improve matching.
+-   **Mutation Detection**: Identifying and optionally stripping mutation-like substrings (e.g., `V600E`).
+-   **Gene Candidate Inference**: Generating potential gene symbols from the normalized name using a comprehensive set of regex-based rules.
+
+The output is a structured dataset that preserves the original name while providing cleaned versions, queryable tokens, and rich metadata.
 
 ## Installation
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+1.  **Create and activate a virtual environment:**
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate
+    ```
 
-Optional quality tools:
+2.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-```bash
-pip install black ruff mypy pandas-stubs
-```
+3.  **Optional quality tools:**
+    For development, you can install the following tools:
+    ```bash
+    pip install black ruff mypy pandas-stubs
+    ```
 
 ## Usage
 
+The script is run from the command line, with options to specify input/output files and control the normalization process.
+
 ```bash
 python main.py --input target_validation_new.csv --output normalized.csv
-# optional flags:
-#   --delimiter ';'          # CSV delimiter override
-#   --encoding utf-8         # File encoding override
-#   --keep-mutations         # retain mutation tokens
-#   --no-mutations           # disable mutation detection
-#   --taxon 10090            # set hint_taxon
-#   --json-columns hints,rules_applied  # columns to JSON-encode
 ```
 
-The output CSV includes columns:
+### Command-Line Arguments
 
-- `clean_text` – normalized name without stop words
-- `clean_text_alt` – version retaining stop words
-- `query_tokens`, `gene_like_candidates`, `hints`, `rules_applied`, `hint_taxon`
+-   `--input`: (Required) Path to the input CSV file.
+-   `--output`: (Required) Path to the output CSV file.
+-   `--column`: The name of the column containing the target names (default: `target_name`).
+-   `--delimiter`: Overrides the auto-detected CSV delimiter.
+-   `--encoding`: Overrides the auto-detected file encoding.
+-   `--keep-mutations`: If set, mutation-like tokens are retained in the output.
+-   `--no-mutations`: If set, mutation detection is disabled for faster processing.
+-   `--mutation-whitelist`: Path to a text file with additional mutation tokens to preserve (one per line).
+-   `--taxon`: The NCBI taxon ID to associate with the results (default: `9606` for *Homo sapiens*).
+-   `--json-columns`: A comma-separated list of columns to serialize as JSON in the output (default: `hints,rules_applied`).
 
-`clean_text` and `clean_text_alt` collect all distinct textual variants
-(hyphenated/concatenated forms, retained bracket indices, etc.) joined with a
-pipe (`|`) only when more than one unique form exists. `query_tokens` uses the
-same separator for multiple tokens. `hints` and `rules_applied` are stored as
-JSON structures in the output CSV, preserving the original dictionaries and
-lists used during processing.
+## Normalization Pipeline
 
+The normalization process follows these steps:
 
-Hyphenated tokens (e.g. `beta2-adrenergic`) and letter–digit pairs with spaces
-(`h 3`) emit both dashed and undashed variants in `clean_text` and
-`query_tokens` (`beta2-adrenergic`/`beta2adrenergic`, `h-3`/`h3`) to aid
-downstream matching. Original split tokens (e.g. `h` and `3`) are also
-preserved in `query_tokens`.
+1.  **Sanitization**: Removes control characters and normalizes all whitespace to single spaces.
+2.  **Unicode Normalization**: Applies NFKC normalization, converts to lowercase, and standardizes special characters (e.g., Greek letters, smart quotes).
+3.  **Mutation Detection**: Identifies mutation-like substrings based on a set of regex patterns and, if available, the `hgvs` library.
+4.  **Roman Numeral Replacement**: Converts standalone Roman numerals (II-XX) to digits.
+5.  **Parenthetical Extraction**: Extracts content from brackets `()` `[]` `{}`. Short, index-like tokens are kept, while others are moved to the `hints` field.
+6.  **Tokenization**: The cleaned string is tokenized based on spaces and punctuation.
+7.  **Variant Generation**:
+    -   **Hyphenated Tokens**: For tokens like `beta-2`, `beta-2` and `beta2` are generated.
+    -   **Letter-Digit Pairs**: For tokens like `h 3`, `h3` and `h-3` are generated.
+8.  **Stop Word Removal**: Common, non-specific words (e.g., "protein", "receptor") are removed to create `clean_text`. The version with stop words is kept as `clean_text_alt`.
+9.  **Gene Candidate Inference**: A final set of rules is applied to the normalized tokens to generate potential gene symbols.
 
-Standalone Roman numerals from `II` to `XX` are converted to digits while
-single-letter numerals such as `V` or `X` are left untouched to avoid changing
-valid gene symbols.
+## Output Columns
 
-Short indices enclosed in brackets such as `h3`, `p2x7`, or `5-ht1a` are
-kept; the bracketed content is stored under `hints.parenthetical`.
+The output CSV file contains the original data along with the following new columns:
 
-Mutation-like substrings (`V600E`, `p.Gly12Asp`, `ΔF508`, `F508del`, etc.) are
-detected via regex rules, with optional assistance from the `hgvs` parser when
-installed. By default these tokens are removed from the normalized output and
-recorded under `hints.mutations`. Use `--keep-mutations` to retain them. Tokens
-that resemble mutations but are valid receptor names are preserved through
-`MUTATION_WHITELIST`; additional tokens can be supplied with
-`--mutation-whitelist` (a text file with one token per line). If removing
-mutations leaves no core tokens, the original tokens are restored and
-`hints.mutations_only` is set to `true`.
+-   `clean_text`: The primary normalized name, generated after removing stop words. Multiple variants are joined by a pipe (`|`).
+-   `clean_text_alt`: An alternative normalized name that retains stop words.
+-   `query_tokens`: A pipe-separated list of all generated tokens, suitable for database queries.
+-   `gene_like_candidates`: A space-separated list of inferred gene symbols.
+-   `hint_taxon`: The NCBI taxon ID provided during execution.
+-   `hints`: A JSON object containing metadata about the normalization process:
+    -   `parenthetical`: A list of strings extracted from brackets.
+    -   `dropped`: A list of stop words that were removed.
+    -   `mutations`: A list of detected mutation substrings.
+    -   `mutations_only`: A boolean flag that is `true` if the name consisted only of mutations.
+-   `rules_applied`: A JSON list of the regex rule patterns that were successfully applied.
 
-Gene-like candidates are inferred via regex rules:
+## Gene-like Candidate Rules
 
-- `histamine h3` → `hrh3`
-- `dopamine d2` → `drd2`
-- `adrenergic beta1` → `adrb1`
-- `p2x3` → `p2rx3`
-- `5-ht1a` → `htr1a`
-- `gaba a alpha2` → `gabra2`
-- `trp v 1` → `trpv1`
-- `ampa glua2` → `gria2` (or `gria1`–`gria4` if subtype absent)
-- `nmda nr2b` → `grin2b` (family fallback to `grin1`, `grin2a`–`grin2d`, `grin3a`, `grin3b`)
-- `kainate gluk3` → `grik3` (family fallback to `grik1`–`grik5`)
-- `mglur5` / `metabotropic glutamate receptor` → `grm1`–`grm8`
-- `chemokine cc receptor 5` / `cxcr4` → corresponding `ccr`/`cxcr` genes
-- ligand aliases such as `sdf-1` → `cxcr4`, `il-8` → `cxcr1|cxcr2`,
-  `rantes` → `ccr1|ccr3|ccr5`, `fractalkine` → `cx3cr1`
-- `adenosine a2a receptor` → `a2a|adora2a`; `adenosine receptor` → `adora1`–`adora3`
-- `nociceptin receptor` / `orl1` / `nop` → `nop|orl1|oprl1`
-- `neuropeptide y1 receptor` → `y1|npy1r` (family `neuropeptide y receptor` → `npy1r`–`npy5r`)
-- `melanocortin 4 receptor` → `mc4r` (family `melanocortin receptor` → `mc1r`–`mc5r`)
-- `prostaglandin ep3 receptor` → `ep3|ptger3` (family `prostaglandin receptor` → `ptger1`–`ptger4`, `ptgdr`, `ptgdr2`, `ptgfr`, `ptgir`, `tbxa2r`)
-- Additional GPCR families such as calcitonin/CGRP/amylin (CALCR/CALCRL + RAMP1–3), parathyroid hormone (PTH1R/2R), neuropeptide S/FF/B/W, neuromedin U, kisspeptin (KISS1R/GPR54), ghrelin (GHSR), motilin (MLNR/GPR38), prolactin-releasing peptide (PRLHR/GPR10), melanin-concentrating hormone (MCHR1/2), fractalkine (CX3CR1) and XCR1, platelet-activating factor (PTAFR), formyl peptide receptors (FPR1–3/ALX), free fatty acid and hydroxycarboxylic acid receptors (FFAR1–4/GPR40/41/43/120/84 and HCAR1–3/GPR81/109A/B), trace amine-associated receptors (TAAR1–9), bile acid (GPBAR1/TGR5), urotensin II (UTS2R) and apelin (APLNR) receptors.
+The script uses an extensive set of rules to infer gene symbols. Here are some examples:
+
+| Input Text Pattern                  | Inferred Candidate(s)                                           |
+| ----------------------------------- | --------------------------------------------------------------- |
+| `histamine h3`                      | `hrh3`                                                          |
+| `dopamine d2`                       | `drd2`                                                          |
+| `adrenergic beta1`                  | `adrb1`                                                         |
+| `p2x3`                              | `p2rx3`                                                         |
+| `5-ht1a`                            | `htr1a`                                                         |
+| `gaba a alpha2`                     | `gabra2`                                                        |
+| `ampa glua2`                        | `gria2` (or `gria1-4` if subtype is absent)                     |
+| `nmda nr2b`                         | `grin2b` (or `grin` family if subtype is absent)                |
+| `kainate gluk3`                     | `grik3` (or `grik` family if subtype is absent)                 |
+| `mglur5`                            | `grm5` (or `grm` family if subtype is absent)                   |
+| `adenosine a2a receptor`            | `a2a`, `adora2a`                                                |
+| `nociceptin receptor`, `orl1`, `nop` | `nop`, `orl1`, `oprl1`                                          |
+| `melanocortin 4 receptor`           | `mc4r`                                                          |
+| `prostaglandin ep3 receptor`        | `ep3`, `ptger3`                                                 |
+
+The rules cover a wide range of protein families, including GPCRs, ion channels, and nuclear receptors.
 
 ## Development
 
-Run formatting and tests:
+To maintain code quality, run the following checks:
 
 ```bash
+# Check for linting issues
 ruff check .
+
+# Check for formatting issues
 black --check .
+
+# Run unit tests
 pytest
+
+# Run static type checking
 mypy .
 ```

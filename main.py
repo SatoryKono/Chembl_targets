@@ -59,7 +59,23 @@ def normalize_dataframe(
     detect_mutations: bool,
     taxon: int,
 ) -> pd.DataFrame:
-    """Apply ``normalize_target_name`` to a dataframe column."""
+    """Apply target name normalization to a DataFrame column.
+
+    This function iterates over the specified column, normalizes each target
+    name using :func:`library.transforms.normalize_target_name`, and appends
+    the structured results as new columns to the DataFrame.
+
+    Args:
+        df: The input DataFrame.
+        column: The name of the column containing target names to normalize.
+        strip_mutations: If True, mutation-like tokens are removed.
+        mutation_whitelist: A sequence of tokens to exempt from mutation stripping.
+        detect_mutations: If True, mutation detection is performed.
+        taxon: The NCBI taxon ID to associate with the normalization.
+
+    Returns:
+        A new DataFrame with added columns containing the normalization results.
+    """
     results: List[NormalizationResult] = [
         normalize_target_name(
             str(val),

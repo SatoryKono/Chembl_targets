@@ -7,10 +7,10 @@ loading external mapping dictionaries.
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Dict, Sequence, Tuple
 import csv
 import json
+from pathlib import Path
+from typing import Dict, Sequence, Tuple
 
 import pandas as pd  # type: ignore[import-untyped]
 
@@ -22,22 +22,15 @@ DELIMITERS: Tuple[str, ...] = (",", ";", "\t", "|")
 def detect_csv_format(path: Path) -> Tuple[str, str]:
     """Detect encoding and delimiter of a CSV file.
 
-    Parameters
-    ----------
-    path:
-        Path to the CSV file.
+    Args:
+        path: Path to the CSV file.
 
-    Returns
-    -------
-    Tuple[str, str]
-        Detected encoding and delimiter.
+    Returns:
+        A tuple containing the detected encoding and delimiter.
 
-    Raises
-    ------
-    ValueError
-        If the file format could not be detected. The message includes a
-        snippet of the file to aid debugging and suggests using the
-        ``--column`` override for unusual headers.
+    Raises:
+        ValueError: If the file format could not be detected. The message
+            includes a snippet of the file to aid debugging.
     """
     snippet = ""
     try:
@@ -82,21 +75,14 @@ def read_target_names(
 ) -> pd.DataFrame:
     """Read the CSV and return DataFrame with target names.
 
-    Parameters
-    ----------
-    path:
-        Path to the input CSV file.
-    column:
-        Name of the column containing target names.
-    encoding:
-        Optional file encoding. If ``None``, auto-detected.
-    delimiter:
-        Optional delimiter. If ``None``, auto-detected.
+    Args:
+        path: Path to the input CSV file.
+        column: Name of the column containing target names.
+        encoding: Optional file encoding. If None, it's auto-detected.
+        delimiter: Optional delimiter. If None, it's auto-detected.
 
-    Returns
-    -------
-    pandas.DataFrame
-        DataFrame containing at least the raw column.
+    Returns:
+        A DataFrame containing at least the raw target name column.
     """
     if encoding is None or delimiter is None:
         det_enc, det_delim = detect_csv_format(path)
@@ -123,18 +109,12 @@ def write_with_new_columns(
 ) -> None:
     """Write DataFrame to CSV with given encoding.
 
-    Parameters
-    ----------
-    df:
-        DataFrame to save.
-    path:
-        Output path.
-    encoding:
-        Target encoding, default UTF-8.
-    delimiter:
-        Field delimiter for the output CSV.
-    json_columns:
-        Columns to serialize as JSON prior to writing.
+    Args:
+        df: DataFrame to save.
+        path: Output path for the CSV file.
+        encoding: Target encoding (default is UTF-8).
+        delimiter: Field delimiter for the output CSV.
+        json_columns: A sequence of column names to serialize as JSON.
     """
     df = df.copy()
     if json_columns:
@@ -145,17 +125,16 @@ def write_with_new_columns(
 
 
 def load_mapping(path: Path) -> Dict[str, str]:
-    """Load mapping dictionary from JSON or TSV.
+    """Load a mapping dictionary from a JSON or TSV file.
 
-    Parameters
-    ----------
-    path:
-        Path to JSON or TSV file.
+    Args:
+        path: Path to the JSON or TSV file.
 
-    Returns
-    -------
-    dict
-        Mapping loaded from file.
+    Returns:
+        A dictionary containing the loaded mapping.
+
+    Raises:
+        ValueError: If the file format is not supported.
     """
     if path.suffix.lower() == ".json":
         with path.open("r", encoding="utf-8") as fh:
