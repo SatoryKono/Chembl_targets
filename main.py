@@ -85,6 +85,7 @@ def normalize_dataframe(
     df["hints"] = [r.hints for r in results]
     df["rules_applied"] = [r.rules_applied for r in results]
     df["hint_taxon"] = [r.hint_taxon for r in results]
+    df["domains"] = ["|".join(r.domains) for r in results]
     return df
 
 

@@ -1452,6 +1452,15 @@ SHORT_TOKEN_RE = re.compile(r"^[a-z0-9]{1,3}$")
 INDEX_TOKEN_RE = re.compile(r"^(?:[a-z]\d(?:[a-z]\d+)?|5-?ht\d+[a-z]?)$")
 LETTER_DIGIT_SPLIT_RE = re.compile(r"\b(?:[a-z]\s+\d+|\d+\s+[a-z])\b")
 
+DOMAIN_RE = re.compile(
+    r"\b(bd1|bd2|bir\d*|bromodomain|sh2|rrm\d*|btb|phd\d*|fk\d*)\b", re.IGNORECASE
+)
+MULTI_DOMAIN_RE = re.compile(r"([a-zA-Z]+)(\d+)\s*[/&]\s*(\d+)", re.IGNORECASE)
+MULTI_WORD_DOMAIN_RE = re.compile(
+    r"\b(ace c domain|ace n domain|ap - 1 bzip domain)\b", re.IGNORECASE
+)
+
+
 # Pattern capturing simple letter-number-letter mutations like "V600E"
 LETTER_DIGIT_LETTER_RE = re.compile(r"\b([A-Z])(\d+)([A-Z])\b", re.IGNORECASE)
 
@@ -1892,6 +1901,7 @@ class NormalizationResult:
     hint_taxon: int
     hints: Dict[str, List[str] | bool]
     rules_applied: List[str]
+    domains: List[str]
 
 
 def normalize_target_name(
@@ -1929,6 +1939,19 @@ def normalize_target_name(
     if mutation_whitelist:
         whitelist.update(t.lower() for t in mutation_whitelist)
     stage = sanitize_text(name)
+    domains = DOMAIN_RE.findall(stage)
+    for base, d1, d2 in MULTI_DOMAIN_RE.findall(stage):
+        dom1 = f"{base}{d1}"
+        dom2 = f"{base}{d2}"
+        # Use a set for case-insensitive checking to avoid quadratic complexity
+        existing_domains_upper = {d.upper() for d in domains}
+        if dom1.upper() not in existing_domains_upper:
+            domains.append(dom1)
+        if dom2.upper() not in existing_domains_upper:
+            domains.append(dom2)
+    for domain in MULTI_WORD_DOMAIN_RE.findall(stage):
+        if domain.upper() not in {d.upper() for d in domains}:
+            domains.append(domain)
     mutations: List[str] = []
     if detect_mutations:
         mutations = find_mutations(stage, whitelist=list(whitelist))
@@ -2023,4 +2046,5 @@ def normalize_target_name(
         hint_taxon=taxon,
         hints=hints,
         rules_applied=rules_applied,
+        domains=domains,
     )

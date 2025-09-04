@@ -354,3 +354,38 @@ def test_no_mutation_detection() -> None:
 def test_custom_taxon() -> None:
     res = normalize_target_name("histamine receptor", taxon=10090)
     assert res.hint_taxon == 10090
+
+
+def test_domain_extraction() -> None:
+    res = normalize_target_name("Protein with BD1 and BD2 domains")
+    assert res.domains == ["BD1", "BD2"]
+    res = normalize_target_name("Another protein with a BIR domain")
+    assert res.domains == ["BIR"]
+    res = normalize_target_name("Protein with BIR3 domain")
+    assert res.domains == ["BIR3"]
+    res = normalize_target_name("Protein with BROMODOMAIN")
+    assert res.domains == ["BROMODOMAIN"]
+    res = normalize_target_name("Protein with SH2 domain")
+    assert res.domains == ["SH2"]
+    res = normalize_target_name("Protein with RRM1 and RRM2 domains")
+    assert res.domains == ["RRM1", "RRM2"]
+    res = normalize_target_name("Protein with BTB domain")
+    assert res.domains == ["BTB"]
+    res = normalize_target_name("Protein with PHD3 domain")
+    assert res.domains == ["PHD3"]
+    res = normalize_target_name("Protein with FK1 domain")
+    assert res.domains == ["FK1"]
+    res = normalize_target_name("Protein with BD1/BD2 domains")
+    assert sorted([d.upper() for d in res.domains]) == ["BD1", "BD2"]
+    res = normalize_target_name("Protein with BD1/2 domains")
+    assert sorted([d.upper() for d in res.domains]) == ["BD1", "BD2"]
+    res = normalize_target_name("Protein with BD1&2 domains")
+    assert sorted([d.upper() for d in res.domains]) == ["BD1", "BD2"]
+    res = normalize_target_name("protein with ace c domain")
+    assert res.domains == ["ace c domain"]
+    res = normalize_target_name("protein with ace n domain")
+    assert res.domains == ["ace n domain"]
+    res = normalize_target_name("protein with ap - 1 bzip domain")
+    assert res.domains == ["ap - 1 bzip domain"]
+    res = normalize_target_name("No domains here")
+    assert res.domains == []
