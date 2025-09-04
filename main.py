@@ -1,4 +1,4 @@
-"""CLI entry point for target name normalization."""
+"""CLI entry point for target name normalization and validation."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ import pandas as pd
 
 from library.io_utils import read_target_names, write_with_new_columns
 from library.transforms import NormalizationResult, normalize_target_name
+from library.validate import validate_uniprot_dataframe
 
 
 def configure_logging(level: str) -> None:
@@ -21,10 +22,16 @@ def configure_logging(level: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="Normalize target names")
+    parser = argparse.ArgumentParser(
+        description="Normalize target names and optionally validate UniProt mappings"
+    )
     parser.add_argument("--input", required=True, help="Path to input CSV")
     parser.add_argument("--output", required=True, help="Path to output CSV")
     parser.add_argument("--column", default="target_name", help="Name column")
+    parser.add_argument(
+        "--id-column",
+        help="If provided, column with UniProt accessions to validate",
+    )
     parser.add_argument("--log-level", default="INFO", help="Logging level")
     parser.add_argument("--delimiter", help="CSV delimiter override")
     parser.add_argument("--encoding", help="File encoding override")
@@ -107,6 +114,11 @@ def main() -> None:
     elapsed = time.perf_counter() - start
     logging.info("Normalized %d records in %.2f s", len(df), elapsed)
     logging.info("Sample output: %s", df.head().to_dict(orient="records"))
+    if args.id_column:
+        logging.info("Validating UniProt mappings using column '%s'", args.id_column)
+        df = validate_uniprot_dataframe(df, args.id_column, args.column)
+        matches = int(df["uniprot_match"].sum())
+        logging.info("UniProt match count: %d/%d", matches, len(df))
     json_cols = (
         args.json_columns.split(",")
         if args.json_columns
