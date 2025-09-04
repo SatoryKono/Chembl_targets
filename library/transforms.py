@@ -1446,6 +1446,7 @@ PAREN_RE = re.compile(r"\(([^(]*)\)|\[([^\]]*)\]|\{([^}]*)\)")
 # Split on whitespace, punctuation, and dots/commas not between digits
 TOKEN_SPLIT_RE = re.compile(r"(?:[\s\-_/:;]|^,|,(?!\d)|(?<=\D),|(?<!\d)\.(?!\d))+")
 HYPHEN_SPACE_RE = re.compile(r"\s*-\s*")
+DECIMAL_SPACE_RE = re.compile(r"(?<=\d)\s*([.,])\s*(?=\d)")
 HYPHEN_TOKEN_RE = re.compile(r"\b[a-z0-9]+(?:-[a-z0-9]+)+\b")
 SHORT_TOKEN_RE = re.compile(r"^[a-z0-9]{1,3}$")
 INDEX_TOKEN_RE = re.compile(r"^(?:[a-z]\d(?:[a-z]\d+)?|5-?ht\d+[a-z]?)$")
@@ -1597,8 +1598,9 @@ def extract_parenthetical(text: str) -> Tuple[str, List[str], List[str]]:
 
 
 def pretoken_cleanup(text: str) -> str:
-    """Normalize spaces around hyphens before splitting."""
+    """Normalize spaces around hyphens and decimal separators before splitting."""
     text = HYPHEN_SPACE_RE.sub("-", text)
+    text = DECIMAL_SPACE_RE.sub(r"\1", text)
     return text
 
 

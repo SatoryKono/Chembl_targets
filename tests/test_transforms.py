@@ -111,8 +111,13 @@ def test_letter_digit_space_variants():
 
 
 def test_comma_between_digits_preserved() -> None:
-    res = normalize_target_name("1,25-oh 2d3")
+    res = normalize_target_name("1 , 25-oh 2d3")
     assert res.query_tokens[:3] == ["1,25", "oh", "2d3"]
+
+
+def test_dot_between_digits_with_spaces_preserved() -> None:
+    res = normalize_target_name("nav1 . 3 channel")
+    assert res.query_tokens == ["nav1.3"]
 
 
 def test_parenthetical_complex_indices():
