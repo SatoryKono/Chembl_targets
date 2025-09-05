@@ -1591,6 +1591,7 @@ HGVS_P_MISSENSE_3 = re.compile(
 )
 
 # Common receptor aliases resembling mutations
+
 # Includes short GPCR labels such as ``h3r`` (histamine), ``d2l`` (dopamine),
 # ``m2r`` (muscarinic) and ``a2b`` (adenosine). The goal is to avoid treating
 # these common receptor names as amino-acid substitutions.
@@ -1615,6 +1616,7 @@ HAS_INDEL_MARKER = re.compile(
 INDEL_CONTEXT = re.compile(
     r"(?i)\d+(?:[_-]?\d+)?(?:delins|del(?![a-z])|ins|dup|fs)"
 )
+
 
 
 def is_indel_like(s: str) -> bool:

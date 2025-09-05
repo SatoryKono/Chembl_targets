@@ -1,0 +1,19 @@
+target_name,target_chembl_id,organism,target_uniprot_id,clean_text,clean_text_alt,query_tokens,gene_like_candidates,hints,rules_applied,hint_taxon,domains,uniprot_match
+ldh,CHEMBL4105929,Homo sapiens,V9HWB9,ldh,ldh,ldh,,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,False
+ck1gamma3,CHEMBL5084,Homo sapiens,Q9Y6M4,ck1gamma3,ck1gamma3,ck1gamma3,,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,False
+dnmt3a,CHEMBL1992,Homo sapiens,Q9Y6K1,dnmt3a,dnmt3a,dnmt3a,,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,True
+epsin1,CHEMBL3259465,Homo sapiens,Q9Y6I3,epsin1,epsin1,epsin1,,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,False
+epsin - 1,CHEMBL3259465,Homo sapiens,Q9Y6I3,epsin 1|epsin-1|epsin1,epsin 1|epsin-1|epsin1,epsin|1|epsin-1|epsin1,,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,False
+parp3,CHEMBL5083,Homo sapiens,Q9Y6F1,parp3,parp3,parp3,,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,True
+mst3,CHEMBL5082,Homo sapiens,Q9Y6E0,mst3,mst3,mst3,,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,True
+spin1,CHEMBL4523509,Homo sapiens,Q9Y657,spin1,spin1,spin1,,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,True
+bace2,CHEMBL2525,Homo sapiens,Q9Y5Z0,bace2,bace2,bace2,,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,True
+voltage - gated na channel 1 . 8,CHEMBL5451,Homo sapiens,Q9Y5Y9,voltage gated na 1.8|voltage-gated na 1.8|voltage-gated|voltagegated na 1.8|voltagegated,voltage gated na channel 1.8|voltage-gated na channel 1.8|voltage-gated|voltagegated na channel 1.8|voltagegated,voltage|gated|na|1.8|voltage-gated|voltagegated,scn10a nav1.8,"{""parenthetical"": [], ""dropped"": [""channel""], ""mutations"": []}",[],9606,,False
+nav1 . 8 / beta1,CHEMBL5451,Homo sapiens,Q9Y5Y9,nav1.8 beta1,nav1.8 beta1,nav1.8|beta1,scn10a nav1.8,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,False
+nav1 . 8,CHEMBL5451,Homo sapiens,Q9Y5Y9,nav1.8,nav1.8,nav1.8,scn10a nav1.8,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,False
+nav1 . 8 channel,CHEMBL5451,Homo sapiens,Q9Y5Y9,nav1.8,nav1.8 channel,nav1.8,scn10a nav1.8,"{""parenthetical"": [], ""dropped"": [""channel""], ""mutations"": []}",[],9606,,False
+matripase,CHEMBL3018,Homo sapiens,Q9Y5Y6,matripase,matripase,matripase,,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,False
+matriptase,CHEMBL3018,Homo sapiens,Q9Y5Y6,matriptase,matriptase,matriptase,,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,False
+crth - 2,CHEMBL5071,Homo sapiens,Q9Y5Y4,crth 2|crth-2|crth2,crth 2|crth-2|crth2,crth|2|crth-2|crth2,dp2 crth2 ptgdr2 gpr44,"{""parenthetical"": [], ""dropped"": [], ""mutations"": []}",[],9606,,False
+crth2 receptor,CHEMBL5071,Homo sapiens,Q9Y5Y4,crth2,crth2 receptor,crth2,dp2 crth2 ptgdr2 gpr44,"{""parenthetical"": [], ""dropped"": [""receptor""], ""mutations"": []}",[],9606,,False
+prostanoid dp2 receptor,CHEMBL5071,Homo sapiens,Q9Y5Y4,prostanoid dp2,prostanoid dp2 receptor,prostanoid|dp2,dp2 crth2 ptgdr2 gpr44,"{""parenthetical"": [], ""dropped"": [""receptor""], ""mutations"": []}",[],9606,,False
