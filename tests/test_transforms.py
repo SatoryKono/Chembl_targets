@@ -13,10 +13,7 @@ from library.io_utils import read_target_names, write_with_new_columns
 from library.transforms import (
     apply_receptor_rules,
     classify_token,
-<<<<<<< HEAD
-=======
 
->>>>>>> 82f4f6d4e339d5ab1b23296d8be1d74fdb06dc46
     find_mutations,
 
     normalize_target_name,
@@ -61,10 +58,9 @@ def test_classify_token_cases() -> None:
     assert classify_token("Arg97fs*5") == "INDEL_LIKE"
     assert classify_token("install") == "NONE"
     assert classify_token("h3r") == "COMMON_ALIAS"
-<<<<<<< HEAD
-=======
 
->>>>>>> 82f4f6d4e339d5ab1b23296d8be1d74fdb06dc46
+
+
     assert classify_token("v1a") == "COMMON_ALIAS"
     assert classify_token("d2l") == "COMMON_ALIAS"
     assert classify_token("s1p") == "COMMON_ALIAS"
