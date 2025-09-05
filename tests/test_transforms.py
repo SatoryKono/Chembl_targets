@@ -13,9 +13,6 @@ from library.io_utils import read_target_names, write_with_new_columns
 from library.transforms import (
     apply_receptor_rules,
     classify_token,
-
-    find_mutations,
-
     normalize_target_name,
     replace_specials,
     replace_roman_numerals,
@@ -65,10 +62,6 @@ def test_classify_token_cases() -> None:
     assert classify_token("d3r") == "COMMON_ALIAS"
     assert classify_token("m2r") == "COMMON_ALIAS"
     assert classify_token("p110delta") == "NONE"
-
-
-
-
 
 
 def test_read_target_names_missing_column(tmp_path: Path) -> None:
@@ -323,6 +316,13 @@ def test_letter_digit_letter_same_not_mutation() -> None:
     """Sequences like A123A should not be treated as mutations."""
     res = normalize_target_name("AKT1 E17E")
     assert res.clean_text == "akt1 e17e"
+    assert res.hints["mutations"] == []
+
+
+@pytest.mark.parametrize("token", ["g9a", "p2y", "s1r", "p38a"])
+def test_lowercase_aliases_not_mutations(token: str) -> None:
+    """Lowercase receptor aliases should not be extracted as mutations."""
+    res = normalize_target_name(token)
     assert res.hints["mutations"] == []
 
 
