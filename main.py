@@ -6,7 +6,7 @@ import argparse
 import logging
 import time
 from pathlib import Path
-from typing import List, Sequence
+from typing import List, Sequence, cast
 
 import pandas as pd
 
@@ -83,6 +83,10 @@ def normalize_dataframe(
     df["query_tokens"] = ["|".join(r.query_tokens) for r in results]
     df["gene_like_candidates"] = [" ".join(r.gene_like_candidates) for r in results]
     df["hints"] = [r.hints for r in results]
+    df["mutation_classes"] = [
+        "|".join(cast(List[str], r.hints.get("mutation_classes", [])))
+        for r in results
+    ]
     df["rules_applied"] = [r.rules_applied for r in results]
     df["hint_taxon"] = [r.hint_taxon for r in results]
     df["domains"] = ["|".join(r.domains) for r in results]
