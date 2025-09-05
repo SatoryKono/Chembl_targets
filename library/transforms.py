@@ -1463,6 +1463,15 @@ MULTI_WORD_DOMAIN_RE = re.compile(
 
 # Pattern capturing simple letter-number-letter mutations like "V600E"
 LETTER_DIGIT_LETTER_RE = re.compile(r"\b([A-Z])(\d+)([A-Z])\b", re.IGNORECASE)
+# Explicit regex for simple indel-like patterns (e.g. "F508del"). The
+# negative lookahead after ``del`` prevents matching receptor names such as
+# ``p38delta`` where ``del`` is followed by alphabetic characters forming
+# ordinary words.
+INDEL_MUTATION_RE = re.compile(
+    r"\b[A-Z][0-9]+(?:del(?![a-z])|ins|dup)[A-Z]*\b", re.IGNORECASE
+)
+# Pattern for deletions written with the "Δ" symbol or the word "delta".
+DELTA_AA_PATTERN = re.compile(r"(?:Δ|delta)\s?[A-Z][0-9]+", re.IGNORECASE)
 
 # Patterns for mutation extraction ------------------------------------------------
 MUTATION_PATTERNS: Sequence[re.Pattern[str]] = (
@@ -1486,9 +1495,9 @@ MUTATION_PATTERNS: Sequence[re.Pattern[str]] = (
         re.IGNORECASE,
     ),
     re.compile(r"\b(?:[A-Z][0-9]+[A-Z])(?:/[A-Z][0-9]+[A-Z])+\b", re.IGNORECASE),
-    re.compile(r"\b[A-Z][0-9]+(?:del|ins|dup)[A-Z]*\b", re.IGNORECASE),
+    INDEL_MUTATION_RE,
     re.compile(r"\b[A-Z][0-9]+fs\*?\d*\b", re.IGNORECASE),
-    re.compile(r"(?:Δ|delta)\s?[A-Z][0-9]+", re.IGNORECASE),
+    DELTA_AA_PATTERN,
     re.compile(r"\b(mutant|variant|mut\.)\b", re.IGNORECASE),
 )
 #: Tokens resembling mutations but representing legitimate receptor or gene names.
@@ -1577,12 +1586,8 @@ AA1_PATTERN, AA3_PATTERN = compile_whitelists()
 
 
 # Missense and alias classification patterns --------------------------------
-MISSENSE_1_NO_P = re.compile(
-    rf"\b({AA1_PATTERN})(\d+)({AA1_PATTERN})\b", re.IGNORECASE
-)
-MISSENSE_3_NO_P = re.compile(
-    rf"\b({AA3_PATTERN})(\d+)({AA3_PATTERN})\b", re.IGNORECASE
-)
+MISSENSE_1_NO_P = re.compile(rf"\b({AA1_PATTERN})(\d+)({AA1_PATTERN})\b", re.IGNORECASE)
+MISSENSE_3_NO_P = re.compile(rf"\b({AA3_PATTERN})(\d+)({AA3_PATTERN})\b", re.IGNORECASE)
 HGVS_P_MISSENSE_1 = re.compile(
     rf"\bp\.({AA1_PATTERN})(\d+)({AA1_PATTERN})\b", re.IGNORECASE
 )
@@ -1610,12 +1615,8 @@ COMMON_ALIAS_RE = re.compile(
 
 # Indel detection patterns. ``del`` must not be followed by alphabetic
 # characters to avoid matching ordinary words like ``delta``.
-HAS_INDEL_MARKER = re.compile(
-    r"(?i)(?:delins|del(?![a-z])|ins|dup|fs)"
-)
-INDEL_CONTEXT = re.compile(
-    r"(?i)\d+(?:[_-]?\d+)?(?:delins|del(?![a-z])|ins|dup|fs)"
-)
+HAS_INDEL_MARKER = re.compile(r"(?i)(?:delins|del(?![a-z])|ins|dup|fs)")
+INDEL_CONTEXT = re.compile(r"(?i)\d+(?:[_-]?\d+)?(?:delins|del(?![a-z])|ins|dup|fs)")
 
 
 def is_indel_like(s: str) -> bool:
@@ -1896,6 +1897,14 @@ def find_mutations(text: str, whitelist: Sequence[str] | None = None) -> List[st
     for pattern in MUTATION_PATTERNS:
         for match in pattern.finditer(text):
             token = match.group(0)
+            # Skip lowercase matches for simple missense or delta patterns,
+            # which often correspond to receptor aliases rather than genuine
+            # amino-acid substitutions.
+            if (
+                pattern in {LETTER_DIGIT_LETTER_RE, DELTA_AA_PATTERN}
+                and token.islower()
+            ):
+                continue
             cls = classify_token(token)
             if cls == "COMMON_ALIAS":
                 continue
@@ -2226,7 +2235,5 @@ if __name__ == "__main__":  # pragma: no cover - simple usage tests
     }
     for tok, expected in examples.items():
         result = classify_token(tok)
-        assert (
-            result == expected
-        ), f"{tok} classified as {result}, expected {expected}"
+        assert result == expected, f"{tok} classified as {result}, expected {expected}"
     print("Manual classification tests passed")
