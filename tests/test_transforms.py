@@ -73,17 +73,14 @@ def test_classify_token_cases() -> None:
     assert classify_token("p110delta") == "NONE"
 
 
-<<<<<<< HEAD
+
 def test_alias_tokens_not_detected_as_mutations() -> None:
     assert find_mutations("vasopressin v1a receptor") == []
     assert find_mutations("dopamine d2l receptor") == []
     assert find_mutations("dopamine d3r receptor") == []
     assert find_mutations("muscarinic m2r receptor") == []
     assert find_mutations("s1p receptor") == []
-=======
 
-
->>>>>>> 82f4f6d4e339d5ab1b23296d8be1d74fdb06dc46
 
 
 def test_read_target_names_missing_column(tmp_path: Path) -> None:
