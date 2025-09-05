@@ -1616,7 +1616,10 @@ HAS_INDEL_MARKER = re.compile(
 INDEL_CONTEXT = re.compile(
     r"(?i)\d+(?:[_-]?\d+)?(?:delins|del(?![a-z])|ins|dup|fs)"
 )
+<<<<<<< HEAD
 
+=======
+>>>>>>> 82f4f6d4e339d5ab1b23296d8be1d74fdb06dc46
 
 
 def is_indel_like(s: str) -> bool:
