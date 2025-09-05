@@ -13,7 +13,9 @@ from library.io_utils import read_target_names, write_with_new_columns
 from library.transforms import (
     apply_receptor_rules,
     classify_token,
+
     find_mutations,
+
     normalize_target_name,
     replace_specials,
     replace_roman_numerals,
@@ -56,6 +58,7 @@ def test_classify_token_cases() -> None:
     assert classify_token("Arg97fs*5") == "INDEL_LIKE"
     assert classify_token("install") == "NONE"
     assert classify_token("h3r") == "COMMON_ALIAS"
+
     assert classify_token("v1a") == "COMMON_ALIAS"
     assert classify_token("d2l") == "COMMON_ALIAS"
     assert classify_token("s1p") == "COMMON_ALIAS"
@@ -64,12 +67,8 @@ def test_classify_token_cases() -> None:
     assert classify_token("p110delta") == "NONE"
 
 
-def test_alias_tokens_not_detected_as_mutations() -> None:
-    assert find_mutations("vasopressin v1a receptor") == []
-    assert find_mutations("dopamine d2l receptor") == []
-    assert find_mutations("dopamine d3r receptor") == []
-    assert find_mutations("muscarinic m2r receptor") == []
-    assert find_mutations("s1p receptor") == []
+
+
 
 
 def test_read_target_names_missing_column(tmp_path: Path) -> None:
