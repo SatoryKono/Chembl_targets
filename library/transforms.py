@@ -1591,11 +1591,31 @@ HGVS_P_MISSENSE_3 = re.compile(
 )
 
 # Common receptor aliases resembling mutations
-COMMON_ALIAS_RE = re.compile(r"(?i)\b(?:h\d{1,2}r|a\d{1,2}[ab]|c\d{1,2}a)\b")
 
-# Indel detection patterns
-HAS_INDEL_MARKER = re.compile(r"(?i)(?:del|ins|dup|delins|fs)")
-INDEL_CONTEXT = re.compile(r"(?i)\d+(?:[_-]?\d+)?(?:del|ins|dup|delins|fs)")
+# Includes short GPCR labels such as ``h3r`` (histamine), ``d2l`` (dopamine),
+# ``m2r`` (muscarinic) and ``a2b`` (adenosine). The goal is to avoid treating
+# these common receptor names as amino-acid substitutions.
+COMMON_ALIAS_RE = re.compile(
+    r"(?i)\b(?:"
+    r"h\d{1,2}r"  # histamine H1R/H2R/H3R/H4R
+    r"|a\d{1,2}[ab]"  # adenosine A1/A2A/A2B/A3
+    r"|c\d{1,2}a"  # complement C3a/C5a
+    r"|v\d{1,2}[ab]"  # vasopressin V1A/V1B/V2A/V2B
+    r"|d2[lsa]"  # dopamine D2L/D2S/D2A splice forms
+    r"|d[1-5]r"  # dopamine D1R-D5R
+    r"|m[1-5]r"  # muscarinic M1R-M5R
+    r"|s1p"  # sphingosine-1-phosphate receptor
+    r")\b"
+)
+
+# Indel detection patterns. ``del`` must not be followed by alphabetic
+# characters to avoid matching ordinary words like ``delta``.
+HAS_INDEL_MARKER = re.compile(
+    r"(?i)(?:delins|del(?![a-z])|ins|dup|fs)"
+)
+INDEL_CONTEXT = re.compile(
+    r"(?i)\d+(?:[_-]?\d+)?(?:delins|del(?![a-z])|ins|dup|fs)"
+)
 
 
 def is_indel_like(s: str) -> bool:
