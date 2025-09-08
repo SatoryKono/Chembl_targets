@@ -81,6 +81,7 @@ STOP_WORDS: Sequence[str] = (
     "isoform",
     "fragment",
     "subunit",
+    "mutant",
     "chain",
     "precursor",
     "like",
@@ -1443,8 +1444,11 @@ MULTI_SPACE_RE = re.compile(r"[\s\t]+")
 TYPO_QUOTES_RE = re.compile(r"[“”«»„]|’")
 LONG_DASH_RE = re.compile(r"[–—]")
 PAREN_RE = re.compile(r"\(([^(]*)\)|\[([^\]]*)\]|\{([^}]*)\)")
-# Split on whitespace, punctuation, and dots/commas not between digits
-TOKEN_SPLIT_RE = re.compile(r"(?:[\s\-_/:;]|^,|,(?!\d)|(?<=\D),|(?<!\d)\.(?!\d))+")
+# Split on whitespace, punctuation, and dots/commas not between digits.
+# Parentheses are captured separately to keep them as standalone tokens.
+TOKEN_SPLIT_RE = re.compile(
+    r"([()])|(?:[\s\-_/:;]|^,|,(?!\d)|(?<=\D),|(?<!\d)\.(?!\d))+"
+)
 HYPHEN_SPACE_RE = re.compile(r"\s*-\s*")
 DECIMAL_SPACE_RE = re.compile(r"(?<=\d)\s*([.,])\s*(?=\d)")
 HYPHEN_TOKEN_RE = re.compile(r"\b[a-z0-9]+(?:-[a-z0-9]+)+\b")
@@ -1461,8 +1465,9 @@ MULTI_WORD_DOMAIN_RE = re.compile(
 )
 
 
-# Pattern capturing simple letter-number-letter mutations like "V600E"
-LETTER_DIGIT_LETTER_RE = re.compile(r"\b([A-Z])(\d+)([A-Z])\b", re.IGNORECASE)
+# Pattern capturing simple letter-number-letter mutations like "V600E" with
+# optional separators between components (e.g. "T315I", "t-315-i", "y 73 f").
+LETTER_DIGIT_LETTER_RE = re.compile(r"(?i)\b([A-Z])[-_ ]?\d{1,5}[-_ ]?[A-Z]\b")
 # Explicit regex for simple indel-like patterns (e.g. "F508del"). The
 # negative lookahead after ``del`` prevents matching receptor names such as
 # ``p38delta`` where ``del`` is followed by alphabetic characters forming
@@ -1475,20 +1480,18 @@ DELTA_AA_PATTERN = re.compile(r"(?:Δ|delta)\s?[A-Z][0-9]+", re.IGNORECASE)
 
 # Patterns for mutation extraction ------------------------------------------------
 MUTATION_PATTERNS: Sequence[re.Pattern[str]] = (
-    re.compile(r"p\.[A-Z][0-9]+[A-Z]", re.IGNORECASE),
     re.compile(r"p\.[A-Z][0-9]+(?:\*|Ter)", re.IGNORECASE),
+    re.compile(r"p\.[A-Z][0-9]+(?:_[A-Z][0-9]+)?delins[A-Z]+", re.IGNORECASE),
     re.compile(r"p\.[A-Z][0-9]+(?:_[A-Z][0-9]+)?del", re.IGNORECASE),
     re.compile(r"p\.[A-Z][0-9]+_[A-Z][0-9]+ins[A-Z]+", re.IGNORECASE),
     re.compile(r"p\.[A-Z][0-9]+(?:_[A-Z][0-9]+)?dup", re.IGNORECASE),
     re.compile(r"p\.[A-Z][0-9]+fs(?:\*[0-9]+)?", re.IGNORECASE),
     re.compile(r"p\.Met1\?", re.IGNORECASE),
     re.compile(r"p\.\*[0-9]+[A-Z]", re.IGNORECASE),
-    re.compile(r"p\.[A-Z][0-9]+(?:_[A-Z][0-9]+)?delins[A-Z]+", re.IGNORECASE),
     re.compile(r"p\.[A-Z][a-z]{2}[0-9]+(?:[A-Z][a-z]{2}|\*|Ter)", re.IGNORECASE),
     LETTER_DIGIT_LETTER_RE,
     re.compile(
-        r"(?<!p\.)[A-Z][a-z]{2}[0-9]+(?:[A-Z][a-z]{2}|\*|Ter)\b",
-        re.IGNORECASE,
+        r"(?i)(?<!p\.)[A-Z][a-z]{2}[-_ ]?\d{1,5}[-_ ]?(?:[A-Z][a-z]{2}|\*|Ter)\b",
     ),
     re.compile(
         r"\b[pcgnmr]\.[0-9]+[+-]?[0-9]*(?:_[+-]?[0-9]+)?(?:[ACGT]>[ACGT]|delins|del|ins|dup|inv|fs\*?[0-9]*)\b",
@@ -1498,7 +1501,6 @@ MUTATION_PATTERNS: Sequence[re.Pattern[str]] = (
     INDEL_MUTATION_RE,
     re.compile(r"\b[A-Z][0-9]+fs\*?\d*\b", re.IGNORECASE),
     DELTA_AA_PATTERN,
-    re.compile(r"\b(mutant|variant|mut\.)\b", re.IGNORECASE),
 )
 #: Tokens resembling mutations but representing legitimate receptor or gene names.
 #: Extend this set via the ``mutation_whitelist`` parameter of ``normalize_target_name``.
@@ -1511,6 +1513,10 @@ MUTATION_WHITELIST: set[str] = {
     "5-ht1a",
     "alpha1",
     "beta2",
+    "g9a",
+    "p2y",
+    "s1r",
+    "p38a",
 }
 
 # Amino acid whitelists ----------------------------------------------------
@@ -1560,6 +1566,30 @@ AA3_WHITELIST: Tuple[str, ...] = (
     "Val",
 )
 
+# Mapping from three-letter to one-letter amino acid codes for normalization.
+AA3_TO_AA1: Dict[str, str] = {
+    "Ala": "A",
+    "Arg": "R",
+    "Asn": "N",
+    "Asp": "D",
+    "Cys": "C",
+    "Gln": "Q",
+    "Glu": "E",
+    "Gly": "G",
+    "His": "H",
+    "Ile": "I",
+    "Leu": "L",
+    "Lys": "K",
+    "Met": "M",
+    "Phe": "F",
+    "Pro": "P",
+    "Ser": "S",
+    "Thr": "T",
+    "Trp": "W",
+    "Tyr": "Y",
+    "Val": "V",
+}
+
 
 def compile_whitelists(include_nonstandard: bool = False) -> tuple[str, str]:
     """Compile regex fragments for amino acid whitelists.
@@ -1586,13 +1616,17 @@ AA1_PATTERN, AA3_PATTERN = compile_whitelists()
 
 
 # Missense and alias classification patterns --------------------------------
-MISSENSE_1_NO_P = re.compile(rf"\b({AA1_PATTERN})(\d+)({AA1_PATTERN})\b", re.IGNORECASE)
-MISSENSE_3_NO_P = re.compile(rf"\b({AA3_PATTERN})(\d+)({AA3_PATTERN})\b", re.IGNORECASE)
+MISSENSE_1_NO_P = re.compile(
+    rf"({AA1_PATTERN})(\d{{1,5}})({AA1_PATTERN})", re.IGNORECASE
+)
+MISSENSE_3_NO_P = re.compile(
+    rf"({AA3_PATTERN})(\d{{1,5}})({AA3_PATTERN})", re.IGNORECASE
+)
 HGVS_P_MISSENSE_1 = re.compile(
-    rf"\bp\.({AA1_PATTERN})(\d+)({AA1_PATTERN})\b", re.IGNORECASE
+    rf"p\.({AA1_PATTERN})(\d{{1,5}})({AA1_PATTERN})", re.IGNORECASE
 )
 HGVS_P_MISSENSE_3 = re.compile(
-    rf"\bp\.({AA3_PATTERN})(\d+)({AA3_PATTERN})\b", re.IGNORECASE
+    rf"p\.({AA3_PATTERN})(\d{{1,5}})({AA3_PATTERN})", re.IGNORECASE
 )
 
 # Common receptor aliases resembling mutations
@@ -1611,6 +1645,13 @@ COMMON_ALIAS_RE = re.compile(
     r"|m[1-5]r"  # muscarinic M1R-M5R
     r"|s1p"  # sphingosine-1-phosphate receptor
     r")\b"
+)
+
+# Explicit blacklist of receptor/pharmacological aliases that resemble mutations
+# but should never be treated as such.
+ALIAS_BLACKLIST_RE = re.compile(
+    r"^(?:h[1-4]r|a2[ab]|a3r|d[1-5](?:r|s|l|a)?|v1[ab]|v2|s1p[1-5]|c[1-9]a)$",
+    re.IGNORECASE,
 )
 
 # Indel detection patterns. ``del`` must not be followed by alphabetic
@@ -1636,29 +1677,39 @@ def classify_token(s: str) -> str:
     Returns
     -------
     str
-        ``MISSENSE_1``, ``MISSENSE_3``, ``HGVS_P_MISSENSE_1``,
-        ``HGVS_P_MISSENSE_3``, ``INDEL_LIKE``, ``COMMON_ALIAS`` or ``NONE``.
+        ``MISSENSE_1_NO_P``, ``MISSENSE_3_NO_P``, ``HGVS_P``,
+        ``INDEL_WITH_CONTEXT``, ``ALIAS_BLACKLIST`` or ``NONE``.
     """
 
     token = s.strip()
     if not token:
         return "NONE"
-    if COMMON_ALIAS_RE.fullmatch(token):
-        return "COMMON_ALIAS"
-    if is_indel_like(token):
-        return "INDEL_LIKE"
-    m = HGVS_P_MISSENSE_1.fullmatch(token)
+    compact = re.sub(r"[-_ ]", "", token)
+    if ALIAS_BLACKLIST_RE.fullmatch(compact) or COMMON_ALIAS_RE.fullmatch(compact):
+        return "ALIAS_BLACKLIST"
+    if DELTA_AA_PATTERN.fullmatch(token) or is_indel_like(compact):
+        return "INDEL_WITH_CONTEXT"
+    if re.fullmatch(rf"p\.({AA1_PATTERN})(\d+)(?:\*|TER)", compact, re.IGNORECASE):
+        return "HGVS_P"
+    if re.fullmatch(r"p\.Met1\?", compact, re.IGNORECASE):
+        return "HGVS_P"
+    if re.fullmatch(r"p\.\*[0-9]+[A-Z]", compact, re.IGNORECASE):
+        return "HGVS_P"
+    m = HGVS_P_MISSENSE_1.fullmatch(compact)
     if m and m.group(1).upper() != m.group(3).upper():
-        return "HGVS_P_MISSENSE_1"
-    m = HGVS_P_MISSENSE_3.fullmatch(token)
+        return "HGVS_P"
+    m = HGVS_P_MISSENSE_3.fullmatch(compact)
     if m and m.group(1).upper() != m.group(3).upper():
-        return "HGVS_P_MISSENSE_3"
-    m = MISSENSE_1_NO_P.fullmatch(token)
+        return "HGVS_P"
+    m = MISSENSE_1_NO_P.fullmatch(compact)
     if m and m.group(1).upper() != m.group(3).upper():
-        return "MISSENSE_1"
-    m = MISSENSE_3_NO_P.fullmatch(token)
-    if m and m.group(1).upper() != m.group(3).upper():
-        return "MISSENSE_3"
+        return "MISSENSE_1_NO_P"
+    m = MISSENSE_3_NO_P.fullmatch(compact)
+    if m:
+        aa_from = AA3_TO_AA1.get(m.group(1).capitalize(), "")
+        aa_to = AA3_TO_AA1.get(m.group(3).capitalize(), "")
+        if aa_from and aa_to and aa_from != aa_to:
+            return "MISSENSE_3_NO_P"
     return "NONE"
 
 
@@ -1852,8 +1903,50 @@ def build_variant_strings(
 
 
 def tokenize(text: str) -> List[str]:
-    """Split text into tokens using configured delimiters."""
-    return [t for t in TOKEN_SPLIT_RE.split(text) if t]
+    """Split text into tokens using configured delimiters.
+
+    The initial split is coarse and treats parentheses as standalone tokens.
+    Afterwards, adjacent letter/number/letter sequences separated by spaces
+    or hyphens are merged back into single tokens (e.g. ``t-315-i`` → ``t315i``).
+    """
+
+    parts = [p for p in TOKEN_SPLIT_RE.split(text) if p and not p.isspace()]
+    tokens: List[str] = []
+    i = 0
+    while i < len(parts):
+        tok = parts[i]
+        if tok in {"(", ")"}:
+            tokens.append(tok)
+            i += 1
+            continue
+        if (
+            i + 2 < len(parts)
+            and re.fullmatch(r"[A-Za-z]", parts[i])
+            and re.fullmatch(r"\d{1,5}", parts[i + 1])
+            and re.fullmatch(r"[A-Za-z]", parts[i + 2])
+        ):
+            tokens.append(parts[i] + parts[i + 1] + parts[i + 2])
+            i += 3
+            continue
+        if (
+            i + 1 < len(parts)
+            and re.fullmatch(r"[A-Za-z]\d{1,5}", parts[i])
+            and re.fullmatch(r"[A-Za-z]", parts[i + 1])
+        ):
+            tokens.append(parts[i] + parts[i + 1])
+            i += 2
+            continue
+        if (
+            i + 1 < len(parts)
+            and re.fullmatch(r"[A-Za-z]", parts[i])
+            and re.fullmatch(r"\d{1,5}[A-Za-z]", parts[i + 1])
+        ):
+            tokens.append(parts[i] + parts[i + 1])
+            i += 2
+            continue
+        tokens.append(tok)
+        i += 1
+    return tokens
 
 
 def remove_weak_words(tokens: Sequence[str]) -> Tuple[List[str], List[str]]:
@@ -1868,7 +1961,9 @@ def remove_weak_words(tokens: Sequence[str]) -> Tuple[List[str], List[str]]:
     return result, dropped
 
 
-def find_mutations(text: str, whitelist: Sequence[str] | None = None) -> List[str]:
+def find_mutations(
+    text: str, whitelist: Sequence[str] | None = None
+) -> List[Tuple[str, str]]:
     """Extract mutation-like substrings from text.
 
     Parameters
@@ -1880,8 +1975,9 @@ def find_mutations(text: str, whitelist: Sequence[str] | None = None) -> List[st
 
     Returns
     -------
-    List[str]
-        Unique mutation substrings in order of appearance.
+    List[Tuple[str, str]]
+        Pairs of (token, reason) for unique mutation substrings in order of
+        appearance.
 
     Notes
     -----
@@ -1893,47 +1989,31 @@ def find_mutations(text: str, whitelist: Sequence[str] | None = None) -> List[st
     if whitelist:
         allowed.update(w.lower() for w in whitelist)
 
-    found: List[str] = []
+    found: List[Tuple[str, str]] = []
+    seen_lower: set[str] = set()
     for pattern in MUTATION_PATTERNS:
         for match in pattern.finditer(text):
             token = match.group(0)
-            # Skip lowercase matches for simple missense or delta patterns,
-            # which often correspond to receptor aliases rather than genuine
-            # amino-acid substitutions.
-            if (
-                pattern in {LETTER_DIGIT_LETTER_RE, DELTA_AA_PATTERN}
-                and token.islower()
-            ):
+            reason = classify_token(token)
+            if reason in {"NONE", "ALIAS_BLACKLIST"}:
                 continue
-            cls = classify_token(token)
-            if cls == "COMMON_ALIAS":
+            lower = re.sub(r"[-_ ]", "", token.lower())
+            if lower in allowed or any(lower in s or s in lower for s in seen_lower):
                 continue
-            if cls == "NONE" and (
-                MISSENSE_1_NO_P.fullmatch(token)
-                or MISSENSE_3_NO_P.fullmatch(token)
-                or HGVS_P_MISSENSE_1.fullmatch(token)
-                or HGVS_P_MISSENSE_3.fullmatch(token)
-            ):
-                continue
-            lower = token.lower()
-            if lower in allowed:
-                continue
-            if any(lower in f.lower() for f in found):
-                continue
-            found = [f for f in found if f.lower() not in lower]
-            if token not in found:
-                found.append(token)
+            seen_lower.add(lower)
+            found.append((token, reason))
     if _HGVS_PARSER is not None:
         tokens = re.findall(r"\S+", text)
         for tok in tokens:
-            lower = tok.lower()
-            if lower in allowed or any(lower == f.lower() for f in found):
+            lower = re.sub(r"[-_ ]", "", tok.lower())
+            if lower in allowed or lower in seen_lower:
                 continue
             try:
                 _HGVS_PARSER.parse(tok)
             except HGVSParseError:
                 continue
-            found.append(tok)
+            found.append((tok, "HGVS_P"))
+            seen_lower.add(lower)
     return found
 
 
@@ -1958,7 +2038,7 @@ def mutation_token_set(mutations: Sequence[str]) -> set[str]:
         norm = replace_roman_numerals(norm)
         norm_tokens = tokenize(norm)
         for tok in norm_tokens:
-            tokens.add(tok)
+            tokens.add(tok.lower())
     return tokens
 
 
@@ -2125,9 +2205,51 @@ def normalize_target_name(
             domains.append(domain)
     mutations: List[str] = []
     mutation_classes: List[str] = []
+    reasons: List[str] = []
     if detect_mutations:
-        mutations = find_mutations(stage, whitelist=list(whitelist))
-        mutation_classes = [classify_token(m) for m in mutations]
+        found = find_mutations(stage, whitelist=list(whitelist))
+        seen_mut: set[str] = set()
+
+        def add_mut(token: str) -> None:
+            if token not in seen_mut:
+                mutations.append(token)
+                seen_mut.add(token)
+
+        for token, reason in found:
+            reasons.append(reason)
+            compact = re.sub(r"[-_ ]", "", token)
+            if reason in {"MISSENSE_1_NO_P", "MISSENSE_3_NO_P"}:
+                m = MISSENSE_1_NO_P.fullmatch(compact)
+                if m is None:
+                    m = MISSENSE_3_NO_P.fullmatch(compact)
+                if m:
+                    if reason == "MISSENSE_1_NO_P":
+                        norm_from, norm_to = m.group(1), m.group(3)
+                    else:
+                        norm_from = AA3_TO_AA1.get(m.group(1).capitalize(), "")
+                        norm_to = AA3_TO_AA1.get(m.group(3).capitalize(), "")
+                    pos = int(m.group(2))
+                    add_mut(compact)
+                    add_mut(f"p.{norm_from.upper()}{pos}{norm_to.upper()}")
+                    mutation_classes.append("MISSENSE")
+                    continue
+            elif reason == "HGVS_P":
+                original = re.sub(r"^p\.", "p.", token)
+                normalized = "p." + re.sub(r"^p\.", "", compact).upper()
+                add_mut(original)
+                add_mut(normalized)
+                mutation_classes.append("MISSENSE")
+                continue
+            elif reason == "INDEL_WITH_CONTEXT":
+                add_mut(token)
+                mutation_classes.append("INDEL")
+                continue
+            # Default: add compact form if not already handled
+            add_mut(compact)
+
+    mutant_flag = bool(re.search(r"\bmutant\b", stage, re.IGNORECASE))
+    if mutant_flag and not mutations:
+        reasons.append("NO_EXPLICIT_CHANGE")
     stage = normalize_unicode(stage)
     stage = replace_specials(stage)
     stage = replace_roman_numerals(stage)
@@ -2208,7 +2330,10 @@ def normalize_target_name(
         "dropped": dropped,
         "mutations": mutations if detect_mutations else [],
         "mutation_classes": mutation_classes if detect_mutations else [],
+        "reason": reasons if detect_mutations else [],
     }
+    if mutant_flag:
+        hints["mutant"] = True
     if detect_mutations and hints_mutations_only:
         hints["mutations_only"] = True
     return NormalizationResult(
