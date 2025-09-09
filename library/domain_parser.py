@@ -97,20 +97,37 @@ def parse_domain(text: str) -> DomainParseResult:
         domain_loc = _match_from_dict(cleaned, DOMAIN_LOC_MAP, _LOC_PRIORITY)
         index: Optional[Union[int, List[int]]] = None
 
-        if domain_type == "BROMO":
-            if re.search(r"\b1\b", cleaned):
+
+        has1 = bool(
+            re.search(r"\bbd1\b|bromodomain 1|bromo domain 1|domain 1|\b1\b", cleaned)
+        )
+        has2 = bool(
+            re.search(r"\bbd2\b|bromodomain 2|bromo domain 2|domain 2|\b2\b", cleaned)
+        )
+        if domain_type in {"BROMO", "BROMO_BD1", "BROMO_BD2"}:
+            if has1 and has2:
+                domain_type = "BROMO_TANDEM"
+                index = [1, 2]
+                result.domain_reason.append("DERIVED_FROM_BROMODOMAIN12")
+            elif domain_type == "BROMO" and has1:
                 domain_type = "BROMO_BD1"
                 index = 1
                 result.domain_reason.append("DERIVED_FROM_BROMODOMAIN1")
-            elif re.search(r"\b2\b", cleaned):
+            elif domain_type == "BROMO" and has2:
                 domain_type = "BROMO_BD2"
                 index = 2
                 result.domain_reason.append("DERIVED_FROM_BROMODOMAIN2")
+            elif domain_type == "BROMO_BD1" and index is None:
+                index = 1
+            elif domain_type == "BROMO_BD2" and index is None:
+                index = 2
 
-        if domain_type in {"BROMO_BD1", "BROMO_BD2"} and index is None:
-            index = 1 if domain_type.endswith("BD1") else 2
+        if (
+            domain_type == "BROMO_TANDEM"
+            and index is None
+            and re.search(r"\bbrd4\b", cleaned)
+        ):
 
-        if domain_type == "BROMO_TANDEM" and re.search(r"\bbrd4\b", cleaned):
             index = [1, 2]
 
         if index is None:
