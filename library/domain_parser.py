@@ -97,6 +97,7 @@ def parse_domain(text: str) -> DomainParseResult:
         domain_loc = _match_from_dict(cleaned, DOMAIN_LOC_MAP, _LOC_PRIORITY)
         index: Optional[Union[int, List[int]]] = None
 
+
         has1 = bool(
             re.search(r"\bbd1\b|bromodomain 1|bromo domain 1|domain 1|\b1\b", cleaned)
         )
@@ -126,6 +127,7 @@ def parse_domain(text: str) -> DomainParseResult:
             and index is None
             and re.search(r"\bbrd4\b", cleaned)
         ):
+
             index = [1, 2]
 
         if index is None:

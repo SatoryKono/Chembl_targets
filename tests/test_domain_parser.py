@@ -36,6 +36,7 @@ def _extract(result: Any) -> tuple[Any, list[str], Any]:
             ["ICD"],
             None,
         ),
+
         ("brd4 1 / 2 bromodomain", "BROMO_TANDEM", [], [1, 2]),
         ("brd4 bd1 - bd2", "BROMO_TANDEM", [], [1, 2]),
         ("brd4 bd1 / bd2", "BROMO_TANDEM", [], [1, 2]),
@@ -83,6 +84,7 @@ def _extract(result: Any) -> tuple[Any, list[str], Any]:
         ("flt3 kinase domain", "KD", [], None),
         ("g9a set domain", None, [], None),
         ("glp set domain", None, [], None),
+
     ],
 )
 def test_parse_domain(

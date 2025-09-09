@@ -31,12 +31,14 @@ def normalize_text(text: str) -> Tuple[str, List[str]]:
     s = s.replace("cterminal", "c terminal").replace("ndomain", "n domain")
     s = s.replace("cmet", "c met").replace("cdomain", "c domain")
 
+
     def _replace_phd(match: re.Match[str]) -> str:
         """Normalize PHD finger identifiers to a generic token."""
         reasons.append("NORM_PHDFINGER")
         return "phd"
 
     s = re.sub(r"(phd)(\d+)", _replace_phd, s)
+
 
     def _replace_bromo(match: re.Match[str]) -> str:
         digit = match.group(2)
@@ -53,9 +55,11 @@ def normalize_text(text: str) -> Tuple[str, List[str]]:
 
 
 _RAW_DOMAIN_TYPES: Dict[str, str] = {
+
     "KD": "kinase domain|tyrosine kinase domain|ptk domain|catalytic domain|kd|tk domain",
     "LBD": "ligand binding domain|lbd|hormone binding domain",
     "DBD": "dna binding domain|dbd|zf domain|zinc finger|phd finger domain",
+
     "BROMO": "bromodomain|bromo domain|bd",
     "BROMO_BD1": "bromodomain1|bromo domain 1|bromo domain-1|bd1|domain1|domain-1",
     "BROMO_BD2": "bromodomain2|bromo domain 2|bromo domain-2|bd2|domain2|domain-2",
