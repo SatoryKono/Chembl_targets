@@ -13,6 +13,7 @@ import pandas as pd
 from library.io_utils import read_target_names, write_with_new_columns
 from library.transforms import NormalizationResult, normalize_target_name
 from library.validate import validate_uniprot_dataframe
+from library.domain_parser import parse_domain
 
 
 def configure_logging(level: str) -> None:
@@ -54,6 +55,10 @@ def parse_args() -> argparse.Namespace:
         "--json-columns",
         help="Comma-separated columns to serialize as JSON when writing",
     )
+    parser.add_argument(
+        "--domain-column",
+        help="Optional column with domain descriptions to parse",
+    )
     return parser.parse_args()
 
 
@@ -84,12 +89,43 @@ def normalize_dataframe(
     df["gene_like_candidates"] = [" ".join(r.gene_like_candidates) for r in results]
     df["hints"] = [r.hints for r in results]
     df["mutation_classes"] = [
-        "|".join(cast(List[str], r.hints.get("mutation_classes", [])))
-        for r in results
+        "|".join(cast(List[str], r.hints.get("mutation_classes", []))) for r in results
     ]
     df["rules_applied"] = [r.rules_applied for r in results]
     df["hint_taxon"] = [r.hint_taxon for r in results]
     df["domains"] = ["|".join(r.domains) for r in results]
+    return df
+
+
+def add_domain_columns(df: pd.DataFrame, column: str) -> pd.DataFrame:
+    """Parse domain descriptions from *column* and append structured data.
+
+    Parameters
+    ----------
+    df:
+        Input dataframe containing a column with raw domain descriptions.
+    column:
+        Name of the column in ``df`` to parse.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Copy of ``df`` with additional columns ``domain_type``,
+        ``domain_loc``, ``domain_index``, ``domain_source_variant`` and
+        ``domain_reason``.
+    """
+
+    results = [parse_domain(str(v)) for v in df[column]]
+    df = df.copy()
+    df["domain_type"] = [r.domain_type for r in results]
+    df["domain_loc"] = [
+        "|".join(r.domain_loc) if r.domain_loc else None for r in results
+    ]
+    df["domain_index"] = [r.domain_index for r in results]
+    df["domain_source_variant"] = [r.domain_source_variant for r in results]
+    df["domain_reason"] = [
+        "|".join(r.domain_reason) if r.domain_reason else None for r in results
+    ]
     return df
 
 
@@ -116,6 +152,13 @@ def main() -> None:
         detect_mutations=not args.no_mutations,
         taxon=args.taxon,
     )
+    if args.domain_column:
+        if args.domain_column not in df.columns:
+            raise ValueError(
+                f"Domain column '{args.domain_column}' not found in input file."
+            )
+        logging.info("Parsing domain descriptions from column '%s'", args.domain_column)
+        df = add_domain_columns(df, args.domain_column)
     elapsed = time.perf_counter() - start
     logging.info("Normalized %d records in %.2f s", len(df), elapsed)
     logging.info("Sample output: %s", df.head().to_dict(orient="records"))

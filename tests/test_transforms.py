@@ -13,9 +13,6 @@ from library.io_utils import read_target_names, write_with_new_columns
 from library.transforms import (
     apply_receptor_rules,
     classify_token,
-
-    find_mutations,
-
     normalize_target_name,
     replace_specials,
     replace_roman_numerals,
@@ -52,23 +49,19 @@ def test_replace_roman_numerals_extended():
 
 
 def test_classify_token_cases() -> None:
-    assert classify_token("A123V") == "MISSENSE_1"
+    assert classify_token("A123V") == "MISSENSE_1_NO_P"
     assert classify_token("A123A") == "NONE"
-    assert classify_token("p.Ala123Val") == "HGVS_P_MISSENSE_3"
-    assert classify_token("Arg97fs*5") == "INDEL_LIKE"
+    assert classify_token("p.Ala123Val") == "HGVS_P"
+    assert classify_token("Arg97fs*5") == "INDEL_WITH_CONTEXT"
     assert classify_token("install") == "NONE"
-    assert classify_token("h3r") == "COMMON_ALIAS"
+    assert classify_token("h3r") == "ALIAS_BLACKLIST"
 
-    assert classify_token("v1a") == "COMMON_ALIAS"
-    assert classify_token("d2l") == "COMMON_ALIAS"
-    assert classify_token("s1p") == "COMMON_ALIAS"
-    assert classify_token("d3r") == "COMMON_ALIAS"
-    assert classify_token("m2r") == "COMMON_ALIAS"
+    assert classify_token("v1a") == "ALIAS_BLACKLIST"
+    assert classify_token("d2l") == "ALIAS_BLACKLIST"
+    assert classify_token("s1p") == "ALIAS_BLACKLIST"
+    assert classify_token("d3r") == "ALIAS_BLACKLIST"
+    assert classify_token("m2r") == "ALIAS_BLACKLIST"
     assert classify_token("p110delta") == "NONE"
-
-
-
-
 
 
 def test_read_target_names_missing_column(tmp_path: Path) -> None:
@@ -304,15 +297,18 @@ def test_ion_channel_rules() -> None:
 def test_mutation_extraction_and_removal() -> None:
     res = normalize_target_name("hiv1 protease I84V mutant")
     assert res.clean_text == "hiv1 protease"
-    assert res.hints["mutations"] == ["I84V", "mutant"]
+    assert res.hints["mutations"] == ["I84V", "p.I84V"]
+    assert res.hints["mutation_classes"] == ["MISSENSE"]
+    assert res.hints["reason"] == ["MISSENSE_1_NO_P"]
+    assert res.hints["mutant"] is True
 
     res = normalize_target_name("BRAF V600E")
     assert res.clean_text == "braf"
-    assert res.hints["mutations"] == ["V600E"]
+    assert res.hints["mutations"] == ["V600E", "p.V600E"]
 
     res = normalize_target_name("p.Gly12Asp KRAS")
     assert res.clean_text == "kras"
-    assert res.hints["mutations"] == ["p.Gly12Asp"]
+    assert res.hints["mutations"] == ["p.Gly12Asp", "p.GLY12ASP"]
 
     res = normalize_target_name("CFTR ΔF508")
     assert res.clean_text == "cftr"
@@ -324,6 +320,31 @@ def test_letter_digit_letter_same_not_mutation() -> None:
     res = normalize_target_name("AKT1 E17E")
     assert res.clean_text == "akt1 e17e"
     assert res.hints["mutations"] == []
+
+
+@pytest.mark.parametrize("token", ["g9a", "p2y", "s1r", "p38a"])
+def test_lowercase_aliases_not_mutations(token: str) -> None:
+    """Lowercase receptor aliases should not be extracted as mutations."""
+    res = normalize_target_name(token)
+    assert res.hints["mutations"] == []
+
+
+def test_alias_blacklist_and_missense() -> None:
+    res = normalize_target_name("5-ht3a receptor d165k mutant")
+    assert res.hints["mutations"] == ["d165k", "p.D165K"]
+    assert res.hints["mutation_classes"] == ["MISSENSE"]
+
+
+def test_mutant_without_explicit_change() -> None:
+    res = normalize_target_name("ABL mutant")
+    assert res.hints["mutations"] == []
+    assert res.hints["mutant"] is True
+    assert res.hints["reason"] == ["NO_EXPLICIT_CHANGE"]
+
+
+def test_missense_with_separators() -> None:
+    res = normalize_target_name("ABL y 73 f mutant")
+    assert res.hints["mutations"] == ["y73f", "p.Y73F"]
 
 
 def test_mutation_whitelist() -> None:
@@ -341,13 +362,15 @@ def test_mutation_whitelist() -> None:
     assert set(mutations) == {
         "p.Q123*",
         "p.Q123Ter",
+        "p.Q123TER",
         "p.Q123_L125del",
+        "p.K45delinsST",
         "p.T78_S79insA",
         "p.A100dup",
         "p.R97fs*5",
         "p.Met1?",
+        "p.MET1?",
         "p.*100Y",
-        "p.K45delinsST",
     }
 
 
