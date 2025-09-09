@@ -20,9 +20,10 @@ def fake_record(_uniprot_id: str) -> dict:
 
 
 def test_validate_uniprot_dataframe(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        "library.validate.fetch_uniprot_record", lambda uid: fake_record(uid)
-    )
+    async def fake_fetch(ids):
+        return {uid: fake_record(uid) for uid in ids}
+
+    monkeypatch.setattr("library.validate.fetch_uniprot_records", fake_fetch)
     sample = Path("tests/data/uniprot_sample.csv")
     df = pd.read_csv(sample)
     result = validate_uniprot_dataframe(df, "uniprot_id", "protein_name")
@@ -31,9 +32,10 @@ def test_validate_uniprot_dataframe(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_cli_validation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr(
-        "library.validate.fetch_uniprot_record", lambda uid: fake_record(uid)
-    )
+    async def fake_fetch(ids):
+        return {uid: fake_record(uid) for uid in ids}
+
+    monkeypatch.setattr("library.validate.fetch_uniprot_records", fake_fetch)
     sample = Path("tests/data/uniprot_sample.csv")
     out = tmp_path / "out.csv"
     argv = [

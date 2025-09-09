@@ -70,6 +70,7 @@ def normalize_dataframe(
     mutation_whitelist: Sequence[str] | None,
     detect_mutations: bool,
     taxon: int,
+    inplace: bool = False,
 ) -> pd.DataFrame:
     """Apply ``normalize_target_name`` to a dataframe column."""
     results: List[NormalizationResult] = [
@@ -82,22 +83,24 @@ def normalize_dataframe(
         )
         for val in df[column]
     ]
-    df = df.copy()
-    df["clean_text"] = [r.clean_text for r in results]
-    df["clean_text_alt"] = [r.clean_text_alt for r in results]
-    df["query_tokens"] = ["|".join(r.query_tokens) for r in results]
-    df["gene_like_candidates"] = [" ".join(r.gene_like_candidates) for r in results]
-    df["hints"] = [r.hints for r in results]
-    df["mutation_classes"] = [
+    out = df if inplace else df.copy()
+    out["clean_text"] = [r.clean_text for r in results]
+    out["clean_text_alt"] = [r.clean_text_alt for r in results]
+    out["query_tokens"] = ["|".join(r.query_tokens) for r in results]
+    out["gene_like_candidates"] = [" ".join(r.gene_like_candidates) for r in results]
+    out["hints"] = [r.hints for r in results]
+    out["mutation_classes"] = [
         "|".join(cast(List[str], r.hints.get("mutation_classes", []))) for r in results
     ]
-    df["rules_applied"] = [r.rules_applied for r in results]
-    df["hint_taxon"] = [r.hint_taxon for r in results]
-    df["domains"] = ["|".join(r.domains) for r in results]
-    return df
+    out["rules_applied"] = [r.rules_applied for r in results]
+    out["hint_taxon"] = [r.hint_taxon for r in results]
+    out["domains"] = ["|".join(r.domains) for r in results]
+    return out
 
 
-def add_domain_columns(df: pd.DataFrame, column: str) -> pd.DataFrame:
+def add_domain_columns(
+    df: pd.DataFrame, column: str, *, inplace: bool = False
+) -> pd.DataFrame:
     """Parse domain descriptions from *column* and append structured data.
 
     Parameters
@@ -116,17 +119,17 @@ def add_domain_columns(df: pd.DataFrame, column: str) -> pd.DataFrame:
     """
 
     results = [parse_domain(str(v)) for v in df[column]]
-    df = df.copy()
-    df["domain_type"] = [r.domain_type for r in results]
-    df["domain_loc"] = [
+    out = df if inplace else df.copy()
+    out["domain_type"] = [r.domain_type for r in results]
+    out["domain_loc"] = [
         "|".join(r.domain_loc) if r.domain_loc else None for r in results
     ]
-    df["domain_index"] = [r.domain_index for r in results]
-    df["domain_source_variant"] = [r.domain_source_variant for r in results]
-    df["domain_reason"] = [
+    out["domain_index"] = [r.domain_index for r in results]
+    out["domain_source_variant"] = [r.domain_source_variant for r in results]
+    out["domain_reason"] = [
         "|".join(r.domain_reason) if r.domain_reason else None for r in results
     ]
-    return df
+    return out
 
 
 def main() -> None:
@@ -135,8 +138,19 @@ def main() -> None:
     configure_logging(args.log_level)
     inp = Path(args.input)
     out = Path(args.output)
+    usecols = {args.column}
+    if args.id_column:
+        usecols.add(args.id_column)
+    if args.domain_column:
+        usecols.add(args.domain_column)
+    dtypes = {col: "string" for col in usecols}
     df = read_target_names(
-        inp, column=args.column, encoding=args.encoding, delimiter=args.delimiter
+        inp,
+        column=args.column,
+        encoding=args.encoding,
+        delimiter=args.delimiter,
+        usecols=usecols,
+        dtypes=dtypes,
     )
     extra_whitelist = None
     if args.mutation_whitelist:
@@ -151,6 +165,7 @@ def main() -> None:
         mutation_whitelist=extra_whitelist,
         detect_mutations=not args.no_mutations,
         taxon=args.taxon,
+        inplace=True,
     )
     if args.domain_column:
         if args.domain_column not in df.columns:
@@ -158,13 +173,13 @@ def main() -> None:
                 f"Domain column '{args.domain_column}' not found in input file."
             )
         logging.info("Parsing domain descriptions from column '%s'", args.domain_column)
-        df = add_domain_columns(df, args.domain_column)
+        df = add_domain_columns(df, args.domain_column, inplace=True)
     elapsed = time.perf_counter() - start
     logging.info("Normalized %d records in %.2f s", len(df), elapsed)
     logging.info("Sample output: %s", df.head().to_dict(orient="records"))
     if args.id_column:
         logging.info("Validating UniProt mappings using column '%s'", args.id_column)
-        df = validate_uniprot_dataframe(df, args.id_column, args.column)
+        df = validate_uniprot_dataframe(df, args.id_column, args.column, inplace=True)
         matches = int(df["uniprot_match"].sum())
         logging.info("UniProt match count: %d/%d", matches, len(df))
     json_cols = (
