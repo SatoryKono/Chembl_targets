@@ -8,7 +8,7 @@ loading external mapping dictionaries.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Sequence, Tuple
+from typing import Dict, Iterable, Mapping, Sequence, Tuple
 import csv
 import json
 
@@ -79,6 +79,8 @@ def read_target_names(
     *,
     encoding: str | None = None,
     delimiter: str | None = None,
+    usecols: Iterable[str] | None = None,
+    dtypes: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
     """Read the CSV and return DataFrame with target names.
 
@@ -92,24 +94,39 @@ def read_target_names(
         Optional file encoding. If ``None``, auto-detected.
     delimiter:
         Optional delimiter. If ``None``, auto-detected.
+    usecols:
+        Optional iterable of column names to read. The ``column`` value is always
+        included to avoid missing data.
+    dtypes:
+        Optional mapping of column names to pandas dtypes. Supplying this
+        reduces memory usage for large files.
 
     Returns
     -------
     pandas.DataFrame
-        DataFrame containing at least the raw column.
+        DataFrame containing at least the requested columns.
     """
     if encoding is None or delimiter is None:
         det_enc, det_delim = detect_csv_format(path)
         encoding = encoding or det_enc
         delimiter = delimiter or det_delim
-    df = pd.read_csv(path, encoding=encoding, sep=delimiter)
-    if column not in df.columns:
-        sample = df.head().to_string(index=False)
-        cols = ", ".join(df.columns)
+    columns = set(usecols or []) | {column}
+    try:
+        df = pd.read_csv(
+            path,
+            encoding=encoding,
+            sep=delimiter,
+            usecols=list(columns),
+            dtype=dtypes,  # type: ignore[arg-type]
+        )
+    except ValueError as exc:
+        sample_df = pd.read_csv(path, encoding=encoding, sep=delimiter, nrows=5)
+        sample = sample_df.head().to_string(index=False)
+        cols = ", ".join(sample_df.columns)
         raise KeyError(
             f"Column '{column}' not found in {path}. "
             f"Available columns: {cols}. Sample:\n{sample}"
-        )
+        ) from exc
     return df
 
 
@@ -120,6 +137,7 @@ def read_uniprot_mapping(
     *,
     encoding: str | None = None,
     delimiter: str | None = None,
+    dtypes: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
     """Read CSV containing UniProt identifiers and protein names.
 
@@ -135,6 +153,8 @@ def read_uniprot_mapping(
         Optional file encoding. If ``None``, auto-detected.
     delimiter:
         Optional delimiter. If ``None``, auto-detected.
+    dtypes:
+        Optional mapping of column names to pandas dtypes.
 
     Returns
     -------
@@ -145,7 +165,13 @@ def read_uniprot_mapping(
         det_enc, det_delim = detect_csv_format(path)
         encoding = encoding or det_enc
         delimiter = delimiter or det_delim
-    df = pd.read_csv(path, encoding=encoding, sep=delimiter)
+    df = pd.read_csv(
+        path,
+        encoding=encoding,
+        sep=delimiter,
+        usecols=[id_column, name_column],
+        dtype=dtypes,  # type: ignore[arg-type]
+    )
     for col in (id_column, name_column):
         if col not in df.columns:
             sample = df.head().to_string(index=False)
@@ -154,7 +180,7 @@ def read_uniprot_mapping(
                 f"Column '{col}' not found in {path}. "
                 f"Available columns: {cols}. Sample:\n{sample}"
             )
-    return df[[id_column, name_column]].copy()
+    return df
 
 
 def write_with_new_columns(
@@ -180,7 +206,6 @@ def write_with_new_columns(
     json_columns:
         Columns to serialize as JSON prior to writing.
     """
-    df = df.copy()
     if json_columns:
         for col in json_columns:
             if col in df.columns:
